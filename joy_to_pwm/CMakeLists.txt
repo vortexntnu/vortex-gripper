@@ -11,7 +11,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-add_executable(joy_to_pwm 
+add_executable(joy_to_pwm
   src/gripper_interface.cpp
   src/gripper_interface_driver.cpp)
 

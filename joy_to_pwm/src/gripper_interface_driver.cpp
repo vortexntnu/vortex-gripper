@@ -1,10 +1,7 @@
 #include "joy_to_pwm/gripper_interface_driver.hpp"
 
-GripperInterfaceDriver::GripperInterfaceDriver(
-    short i2c_bus,
-    short i2c_address
-) : i2c_bus_(i2c_bus), i2c_address_(i2c_address)
-{
+GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus, short i2c_address)
+    : i2c_bus_(i2c_bus), i2c_address_(i2c_address) {
     std::string i2c_filename = "/dev/i2c-" + std::to_string(i2c_bus_);
     bus_fd_ =
         open(i2c_filename.c_str(),
