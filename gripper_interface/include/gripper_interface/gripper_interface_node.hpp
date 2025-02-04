@@ -3,21 +3,29 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
-#include "joy_to_pwm/gripper_interface_driver.hpp"
+#include <std_msgs/msg/int16_multi_array.hpp>
+#include "gripper_interface/gripper_interface_driver.hpp"
 
 class GripperInterface : public rclcpp::Node {
    public:
     GripperInterface();
 
    private:
+    void extract_parameters();
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg);
+    std_msgs::msg::Int16MultiArray vec_to_msg(std::vector<std::uint16_t> vec);
 
-    short i2c_bus_;
-    short i2c_address_;
+    std::string joy_topic_;
+    std::string pwm_topic_;
+    int i2c_bus_;
+    int i2c_address_;
+    int pwm_gain_;
+    int pwm_idle_;
 
     std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
+    rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;
 };
 
 #endif  // GRIPPER_INTERFACE_HPP
