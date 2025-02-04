@@ -1,0 +1,13 @@
+/gripper_interface_node:
+  ros__parameters:
+    topics:
+      joy: "/joy"
+      pwm: "/gripper_pwm"
+
+    pwm:
+      gain: 200 # value range: pwm_idle +/- pwm_gain
+      idle: 1500
+
+    i2c:
+      bus: 1
+      address: 0x21
