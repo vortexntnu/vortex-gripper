@@ -11,8 +11,22 @@ class GripperInterface : public rclcpp::Node {
     GripperInterface();
 
    private:
+    /**
+     * @brief Extract parameters from the config file.
+     */
     void extract_parameters();
+
+    /**
+     * @brief Callback function for the joystick message.
+     * @param msg The joystick message.
+     */
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg);
+
+    /**
+     * @brief Convert a vector of PWM values to a ROS message.
+     * @param vec The vector of PWM values.
+     * @return The ROS message.
+     */
     std_msgs::msg::Int16MultiArray vec_to_msg(std::vector<std::uint16_t> vec);
 
     std::string joy_topic_;
