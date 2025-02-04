@@ -19,11 +19,14 @@ class GripperInterfaceDriver {
    public:
     ~GripperInterfaceDriver();
 
-    GripperInterfaceDriver(short i2c_bus, int i2c_address, int pwm_gain, int pwm_idle);
+    GripperInterfaceDriver(short i2c_bus,
+                           int i2c_address,
+                           int pwm_gain,
+                           int pwm_idle);
 
     std::uint16_t joy_to_pwm(const double joy_value);
 
-    void send_pwm(const std::vector<std::uint16_t> &pwm_values);
+    void send_pwm(const std::vector<std::uint16_t>& pwm_values);
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
@@ -34,9 +37,9 @@ class GripperInterfaceDriver {
 
     static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
         std::uint16_t pwm) {
-            return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
-                    static_cast<std::uint8_t>(pwm & 0xFF)};
-        }
+        return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
+                static_cast<std::uint8_t>(pwm & 0xFF)};
+    }
 };  // class GripperInterfaceDriver
 
 #endif  // GRIPPER_INTERFACE_DRIVER_HPP

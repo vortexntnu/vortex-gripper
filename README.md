@@ -7,7 +7,7 @@ This repository contains the ROS 2 package that takes joystick values and conver
 
 # Setup
 
-The ROS 2 node can be started with 
+The ROS 2 node can be started with
 ```bash
 ros2 launch gripper_interface gripper_interface.launch.py
 ```

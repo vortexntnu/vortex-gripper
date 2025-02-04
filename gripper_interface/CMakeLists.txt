@@ -20,14 +20,14 @@ add_executable(${PROJECT_NAME}_node
   src/gripper_interface_driver.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME}_node 
-  rclcpp 
+ament_target_dependencies(${PROJECT_NAME}_node
+  rclcpp
   sensor_msgs
 )
 
-install(DIRECTORY 
+install(DIRECTORY
   launch
-  config 
+  config
   DESTINATION share/${PROJECT_NAME}
 )
 

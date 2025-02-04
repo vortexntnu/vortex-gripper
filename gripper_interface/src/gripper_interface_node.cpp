@@ -6,12 +6,10 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         joy_topic_, 10,
         std::bind(&GripperInterface::joy_callback, this,
                   std::placeholders::_1));
-    pwm_pub_ = this->create_publisher<std_msgs::msg::Int16MultiArray>(
-        pwm_topic_, 10
-    );
+    pwm_pub_ =
+        this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-        i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_
-    );
+        i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
 
     RCLCPP_INFO(this->get_logger(), "Gripper interface node started.");
 }
