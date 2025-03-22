@@ -50,7 +50,6 @@ class GripperInterfaceDriver {
      * @param None
      */
     void start_gripper();
-    
 
     /**
      * @brief Stop gripper by sending 0x01 start byte
@@ -58,13 +57,11 @@ class GripperInterfaceDriver {
      */
     void stop_gripper();
 
-
     /**
      * @brief Stop gripper by sending 0x01 start byte
      * @param None
      */
-    void encoder_read(std::vector<std::uint16_t> &encoder_raw_angle);
-
+    void encoder_read(std::vector<std::uint16_t>& encoder_raw_angle);
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
@@ -82,6 +79,11 @@ class GripperInterfaceDriver {
         std::uint16_t pwm) {
         return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
                 static_cast<std::uint8_t>(pwm & 0xFF)};
+    }
+
+    static constexpr std::uint16_t i2c_to_encoder_angles(
+        std::array<std::uint8_t, 2> data) {
+        return (static_cast<std::uint16_t>(data[0]) << 8) | data[1];
     }
 };  // class GripperInterfaceDriver
 
