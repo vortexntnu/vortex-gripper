@@ -9,5 +9,5 @@
       idle: 1500
 
     i2c:
-      bus: 1
-      address: 0x21
+      bus: 7
+      address: 0x31

@@ -49,6 +49,12 @@ void GripperInterface::joy_callback(
     pwm_pub_->publish(pwm_msg);
 
     gripper_driver_->send_pwm(pwm_values);
+
+    if (msg->buttons[0]) {
+        gripper_driver_->start_gripper();
+    } else if (msg->buttons[1]) {
+        gripper_driver_->stop_gripper();
+    }
 }
 
 std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(

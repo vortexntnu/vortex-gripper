@@ -45,6 +45,27 @@ class GripperInterfaceDriver {
      */
     void send_pwm(const std::vector<std::uint16_t>& pwm_values);
 
+    /**
+     * @brief Start gripper by sending 0x02 start byte
+     * @param None
+     */
+    void start_gripper();
+    
+
+    /**
+     * @brief Stop gripper by sending 0x01 start byte
+     * @param None
+     */
+    void stop_gripper();
+
+
+    /**
+     * @brief Stop gripper by sending 0x01 start byte
+     * @param None
+     */
+    void encoder_read(std::vector<std::uint16_t> &encoder_raw_angle);
+
+
    private:
     int bus_fd_;       // File descriptor for I2C bus
     int i2c_bus_;      // I2C bus number
