@@ -5,6 +5,7 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include "gripper_interface/gripper_interface_driver.hpp"
+#include <chrono>
 
 class GripperInterface : public rclcpp::Node {
    public:
@@ -21,6 +22,8 @@ class GripperInterface : public rclcpp::Node {
      * @param msg The joystick message.
      */
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg);
+
+    void encoder_angles_callback();
 
     /**
      * @brief Convert a vector of PWM values to a ROS message.
@@ -40,6 +43,9 @@ class GripperInterface : public rclcpp::Node {
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr encoder_angles_pub_;
+    rclcpp::Time last_msg_time_;
 };
 
 #endif  // GRIPPER_INTERFACE_HPP

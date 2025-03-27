@@ -1,4 +1,6 @@
 #include "gripper_interface/gripper_interface_node.hpp"
+#include <cstdint>
+#include <vector>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -10,6 +12,12 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
         i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
+
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(500),
+        std::bind(&PSMOrinNode::read_ads_callback, this));
+
+    last_msg_time_ = this->now();
 
     RCLCPP_INFO(this->get_logger(), "Gripper interface node started.");
 }
@@ -56,6 +64,13 @@ void GripperInterface::joy_callback(
         gripper_driver_->stop_gripper();
     }
 }
+
+void GripperInterface::encoder_angles_callback(){
+  std::vector<double> angles_in_radians = GripperInterfaceDriver::encoder_read();
+  
+
+}
+
 
 std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(
     std::vector<std::uint16_t> vec) {

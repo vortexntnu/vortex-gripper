@@ -6,10 +6,13 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <algorithm>
+#include <algorithm>  // for std::transform
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <numeric>  // for std::iota
 #include <string>
 #include <vector>
 
@@ -61,7 +64,8 @@ class GripperInterfaceDriver {
      * @brief Stop gripper by sending 0x01 start byte
      * @param None
      */
-    void encoder_read(std::vector<std::uint16_t>& encoder_raw_angle);
+
+    std::vector<double> GripperInterfaceDriver::encoder_read();
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
@@ -84,6 +88,9 @@ class GripperInterfaceDriver {
     static constexpr std::uint16_t i2c_to_encoder_angles(
         std::array<std::uint8_t, 2> data) {
         return (static_cast<std::uint16_t>(data[0]) << 8) | data[1];
+    }
+    static constexpr double raw_angle_to_radians(std::uint16_t raw_angle) {
+        return (static_cast<double>(raw_angle) / 0x3FFF) * (2.0 * M_PI);
     }
 };  // class GripperInterfaceDriver
 
