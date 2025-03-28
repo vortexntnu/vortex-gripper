@@ -16,6 +16,8 @@ class GripperInterface : public rclcpp::Node {
      * @brief Extract parameters from the config file.
      */
     void extract_parameters();
+    
+    void set_publisher_and_subsribers();
 
     /**
      * @brief Callback function for the joystick message.
@@ -40,6 +42,8 @@ class GripperInterface : public rclcpp::Node {
     int pwm_idle_;
 
     std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
+
+    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr angle_pub_;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;

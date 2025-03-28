@@ -65,12 +65,14 @@ void GripperInterface::joy_callback(
     }
 }
 
-void GripperInterface::encoder_angles_callback(){
-  std::vector<double> angles_in_radians = GripperInterfaceDriver::encoder_read();
-  
+void GripperInterface::encoder_angles_callback() {
+    std::vector<double> angle =
+        GripperInterfaceDriver::encoder_read();
 
+    auto angle_msg = std_msgs::msg::Float64();
+    angle_msg.data = angle;
+    angle_pub_->publish(angle_msg);
 }
-
 
 std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(
     std::vector<std::uint16_t> vec) {
