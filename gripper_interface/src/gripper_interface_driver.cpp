@@ -1,5 +1,4 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
-#include <spdlog/spdlog.h>
 
 GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
                                                int i2c_address,
@@ -135,4 +134,5 @@ std::vector<double> GripperInterfaceDriver::encoder_read() {
     } catch (...) {
         spdlog::error("ERROR: Failed to read encoder values - unknown error");
     }
+    return {};
 }
