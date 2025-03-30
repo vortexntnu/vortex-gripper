@@ -3,6 +3,8 @@
 
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
+#include <spdlog/spdlog.h>
+#include <ranges>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <algorithm>
@@ -15,6 +17,7 @@
 #include <numeric>  // for std::iota
 #include <string>
 #include <vector>
+#include <format>
 
 /**
  * @brief Class for interfacing with the gripper.
@@ -65,7 +68,7 @@ class GripperInterfaceDriver {
      * @param None
      */
 
-    std::vector<double> GripperInterfaceDriver::encoder_read();
+    std::vector<double> encoder_read();
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
