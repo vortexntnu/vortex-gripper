@@ -1,6 +1,4 @@
 #include "gripper_interface/gripper_interface_node.hpp"
-#include <cstdint>
-#include <vector>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -65,15 +63,21 @@ void GripperInterface::joy_callback(
     }
 }
 
+
+
 void GripperInterface::encoder_angles_callback() {
-    std::vector<double> angle = GripperInterfaceDriver::encoder_read();
-    if (angle == {}) {
+    std::vector<double> angles = GripperInterfaceDriver::encoder_read();
+    if (angles.empty()) {
         return;
     }
 
-    auto angle_msg = std_msgs::msg::Float64();
-    angle_msg.data = angle;
-    angle_pub_->publish(angle_msg);
+    auto joint_state_msg = sensor_msgs::msg::JointState();
+
+    joint_state_msg.header.stamp = this->now();
+    joint_state_msg.name = {"shoulder", "wrist", "grip"};
+    joint_state_msg.position = angles;
+
+    joint_state_pub_->publish(joint_state_msg);
 }
 
 std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(

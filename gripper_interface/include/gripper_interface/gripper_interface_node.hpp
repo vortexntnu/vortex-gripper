@@ -3,9 +3,12 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joy.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include "gripper_interface/gripper_interface_driver.hpp"
 #include <chrono>
+#include <cstdint>
+#include <vector>
 
 class GripperInterface : public rclcpp::Node {
    public:
@@ -43,7 +46,7 @@ class GripperInterface : public rclcpp::Node {
 
     std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
 
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr angle_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;
