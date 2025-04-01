@@ -51,7 +51,6 @@ class GripperInterface : public rclcpp::Node {
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;
     rclcpp::TimerBase::SharedPtr watchdog_timer_;
-    rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr encoder_angles_pub_;
     rclcpp::Time last_msg_time_;
 };
 

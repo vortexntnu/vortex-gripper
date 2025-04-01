@@ -66,7 +66,7 @@ void GripperInterface::joy_callback(
 
 
 void GripperInterface::encoder_angles_callback() {
-    std::vector<double> angles = GripperInterfaceDriver::encoder_read();
+    std::vector<double> angles = gripper_driver_->encoder_read();
     if (angles.empty()) {
         return;
     }
