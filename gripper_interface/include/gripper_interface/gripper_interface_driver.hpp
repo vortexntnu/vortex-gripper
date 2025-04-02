@@ -6,7 +6,6 @@
 #include <spdlog/spdlog.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <algorithm>
 #include <algorithm>  // for std::transform
 #include <array>
 #include <cmath>
@@ -18,6 +17,7 @@
 #include <ranges>
 #include <string>
 #include <vector>
+#include "canfd.h"
 
 /**
  * @brief Class for interfacing with the gripper.
@@ -50,6 +50,11 @@ class GripperInterfaceDriver {
      * @param pwm_values The PWM values.
      */
     void send_pwm(const std::vector<std::uint16_t>& pwm_values);
+    /**
+     * @brief Send PWM values to the gripper using CAN FD.
+     * @param pwm_values The PWM values.
+     */
+    void send_pwm_can(const std::vector<std::uint16_t>& pwm_values);
 
     /**
      * @brief Start gripper by sending 0x02 start byte

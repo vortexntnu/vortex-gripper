@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
+#include "canfd.h"
 
 GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
                                                int i2c_address,
@@ -65,6 +66,34 @@ void GripperInterfaceDriver::send_pwm(
     }
 }
 
+void GripperInterfaceDriver::send_pwm_can(
+    const std::vector<std::uint16_t>& pwm_values) {
+    try {
+        CANFD_Message msg;
+        msg.id = 0x46B;
+        constexpr std::size_t can_len = 3 * 2;
+        msg.length = static_cast<uint8_t>(can_len);
+        msg.is_fd = true;
+        msg.is_extended = false;
+
+        auto joined_bytes = pwm_values |
+                            std::views::transform([](std::uint16_t pwm) {
+                                return pwm_to_i2c_data(pwm);
+                            }) |
+                            std::views::join;
+
+        std::ranges::copy(joined_bytes, msg.data);
+        if (canfd_send(&msg)) {
+            throw std::runtime_error(std::format(
+                "Error: Failed to send CAN message: {}", strerror(errno)));
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::error("ERROR: Failed to send PWM values - {}", e.what());
+    } catch (...) {
+        spdlog::error("ERROR: Failed to send PWM values - unknown error");
+    }
+}
 void GripperInterfaceDriver::stop_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
