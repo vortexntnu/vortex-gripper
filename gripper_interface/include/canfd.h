@@ -45,7 +45,7 @@ typedef enum {
 } CAN_TRANSMIT_MESSAGE_ID;
 
 
-int canfd_init();
+int canfd_init(const char* interface);
 int canfd_send(const CANFD_Message* msg);
 int canfd_recieve(CANFD_Message* msg, int timout_ms);
 void canfd_close();

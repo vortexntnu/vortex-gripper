@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_node.hpp"
+#include <memory>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -8,8 +9,13 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
                   std::placeholders::_1));
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
-    gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-        i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
+    if (can_enabled_) {
+        gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
+            can_interface_, pwm_gain_, pwm_idle_);
+    } else {
+        gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
+            i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
+    }
 
     watchdog_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),
@@ -27,6 +33,8 @@ void GripperInterface::extract_parameters() {
     this->declare_parameter<int>("pwm.idle");
     this->declare_parameter<int>("i2c.bus");
     this->declare_parameter<int>("i2c.address");
+    this->declare_parameter<int>("can.is_enabled");
+    this->declare_parameter<std::string>("can.interface");
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
@@ -34,6 +42,8 @@ void GripperInterface::extract_parameters() {
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
     this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
     this->i2c_address_ = this->get_parameter("i2c.address").as_int();
+    this->can_enabled_ = this->get_parameter("can.is_enabled").as_int();
+    this->can_interface_ = this->get_parameter("can.interface").as_string();
 }
 
 void GripperInterface::joy_callback(
@@ -62,8 +72,6 @@ void GripperInterface::joy_callback(
         gripper_driver_->stop_gripper();
     }
 }
-
-
 
 void GripperInterface::encoder_angles_callback() {
     std::vector<double> angles = gripper_driver_->encoder_read();

@@ -8,6 +8,7 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
 #include <chrono>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 class GripperInterface : public rclcpp::Node {
@@ -43,6 +44,8 @@ class GripperInterface : public rclcpp::Node {
     int i2c_address_;
     int pwm_gain_;
     int pwm_idle_;
+    int can_enabled_;
+    std::string can_interface_;
 
     std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
 

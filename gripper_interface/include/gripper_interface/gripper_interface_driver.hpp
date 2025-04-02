@@ -39,6 +39,15 @@ class GripperInterfaceDriver {
                            int pwm_idle);
 
     /**
+     * @brief Constructor for the GripperInterfaceDriver class.
+     * @param can_interface String.
+     * @param pwm_gain The gain for converting joystick values to PWM values.
+     * @param pwm_idle The idle PWM value.
+     */
+    GripperInterfaceDriver(std::string can_interface,
+                           int pwm_gain,
+                           int pwm_idle);
+    /**
      * @brief Convert joystick value to PWM value.
      * @param joy_value The joystick value.
      * @return The PWM value.
@@ -81,6 +90,7 @@ class GripperInterfaceDriver {
     int bus_fd_;       // File descriptor for I2C bus
     int i2c_bus_;      // I2C bus number
     int i2c_address_;  // I2C address of the microcontroller
+    std::string can_interface_;
     int pwm_gain_;
     int pwm_idle_;
 
