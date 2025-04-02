@@ -27,7 +27,6 @@ GripperInterfaceDriver::~GripperInterfaceDriver() {
 }
 
 std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
-    // Convert the joystick value to a PWM value
     return static_cast<std::uint16_t>(pwm_idle_ + pwm_gain_ * joy_value);
 }
 
@@ -150,7 +149,6 @@ std::vector<double> GripperInterfaceDriver::encoder_read() {
                 std::array<std::uint8_t, 2> pair = {
                     i2c_data_array[2 * idx], i2c_data_array[2 * idx + 1]};
                 std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
-                // Convert raw_angle (14-bit value) to radians.
                 return raw_angle_to_radians(raw_angle);
             });
 
