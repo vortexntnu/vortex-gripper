@@ -17,7 +17,6 @@
 #include <numeric>  // for std::iota
 #include <string>
 #include <vector>
-#include <format>
 
 /**
  * @brief Class for interfacing with the gripper.
