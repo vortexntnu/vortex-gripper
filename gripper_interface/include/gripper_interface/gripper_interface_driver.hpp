@@ -45,6 +45,7 @@ class GripperInterfaceDriver {
      * @param pwm_idle The idle PWM value.
      */
     GripperInterfaceDriver(std::string can_interface,
+                           int can_enabled,
                            int pwm_gain,
                            int pwm_idle);
     /**
@@ -60,19 +61,19 @@ class GripperInterfaceDriver {
      */
     void send_pwm(const std::vector<std::uint16_t>& pwm_values);
     /**
-     * @brief Send PWM values to the gripper using CAN FD.
+     * @brief Send PWM values to the gripper using CAN.
      * @param pwm_values The PWM values.
      */
     void send_pwm_can(const std::vector<std::uint16_t>& pwm_values);
 
     /**
-     * @brief Start gripper by sending 0x02 start byte
+     * @brief Start gripper by sending 0x02 first byte
      * @param None
      */
     void start_gripper();
 
     /**
-     * @brief Stop gripper by sending 0x01 start byte
+     * @brief Stop gripper by sending 0x01 first byte
      * @param None
      */
     void stop_gripper();
@@ -91,6 +92,7 @@ class GripperInterfaceDriver {
     int i2c_bus_;      // I2C bus number
     int i2c_address_;  // I2C address of the microcontroller
     std::string can_interface_;
+    int can_enabled_ = 0;
     int pwm_gain_;
     int pwm_idle_;
 

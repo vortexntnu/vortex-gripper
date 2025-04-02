@@ -21,9 +21,13 @@ GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
 }
 
 GripperInterfaceDriver::GripperInterfaceDriver(std::string can_interface,
+                                               int can_enabled,
                                                int pwm_gain,
                                                int pwm_idle)
-    : can_interface_(can_interface), pwm_gain_(pwm_gain), pwm_idle_(pwm_idle) {
+    : can_interface_(can_interface),
+      can_enabled_(can_enabled),
+      pwm_gain_(pwm_gain),
+      pwm_idle_(pwm_idle) {
     if (canfd_init(can_interface_.c_str())) {
         throw std::runtime_error(
             std::format("ERROR: Failed to initialize CAN FD {} : {}",
@@ -32,9 +36,13 @@ GripperInterfaceDriver::GripperInterfaceDriver(std::string can_interface,
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
-    if (bus_fd_ >= 0) {
-        send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
-        close(bus_fd_);
+    if (can_enabled_) {
+        canfd_close();
+    } else {
+        if (bus_fd_ >= 0) {
+            send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
+            close(bus_fd_);
+        }
     }
 }
 

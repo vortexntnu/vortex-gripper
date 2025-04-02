@@ -11,7 +11,7 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
     if (can_enabled_) {
         gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-            can_interface_, pwm_gain_, pwm_idle_);
+            can_interface_, can_enabled_, pwm_gain_, pwm_idle_);
     } else {
         gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
             i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
