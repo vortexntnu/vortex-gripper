@@ -4,7 +4,6 @@
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
 #include <spdlog/spdlog.h>
-#include <ranges>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <algorithm>
@@ -13,9 +12,10 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <iostream>
 #include <format>
+#include <iostream>
 #include <numeric>  // for std::iota
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -64,8 +64,10 @@ class GripperInterfaceDriver {
     void stop_gripper();
 
     /**
-     * @brief Stop gripper by sending 0x01 start byte
+     * @brief Reads the raw angle of each encoder
      * @param None
+     * @Return vector containg the angles of the shoulder, wrist and grip in
+     * order
      */
 
     std::vector<double> encoder_read();
@@ -88,10 +90,20 @@ class GripperInterfaceDriver {
                 static_cast<std::uint8_t>(pwm & 0xFF)};
     }
 
+    /**
+     * @brief Converts two uint8_t to uint16_t
+     *@param Array containing to uint8_t
+     *@return Encoder angles
+     */
     static constexpr std::uint16_t i2c_to_encoder_angles(
         std::array<std::uint8_t, 2> data) {
         return (static_cast<std::uint16_t>(data[0]) << 8) | data[1];
     }
+    /**
+     *@brief Converts raw encoder angle to radians
+     *@param Raw encoder angle (uint16_t)
+     *@return angle in radians (double)
+     */
     static constexpr double raw_angle_to_radians(std::uint16_t raw_angle) {
         return (static_cast<double>(raw_angle) / 0x3FFF) * (2.0 * M_PI);
     }
