@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <format>
 #include <numeric>  // for std::iota
 #include <string>
 #include <vector>
