@@ -1,5 +1,4 @@
 #include "gripper_interface/gripper_interface_node.hpp"
-#include <memory>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -9,13 +8,9 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
                   std::placeholders::_1));
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
-    if (can_enabled_) {
-        gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-            can_interface_, can_enabled_, pwm_gain_, pwm_idle_);
-    } else {
-        gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-            i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
-    }
+    gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
+        can_interface_, can_enabled_, i2c_bus_, i2c_address_, pwm_gain_,
+        pwm_idle_);
 
     watchdog_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),

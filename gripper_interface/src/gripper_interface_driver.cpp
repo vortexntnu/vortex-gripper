@@ -1,37 +1,35 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
+#include <string>
 #include "canfd.h"
-
-GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
-                                               int i2c_address,
-                                               int pwm_gain,
-                                               int pwm_idle)
-    : i2c_bus_(i2c_bus),
-      i2c_address_(i2c_address),
-      pwm_gain_(pwm_gain),
-      pwm_idle_(pwm_idle) {
-    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
-    bus_fd_ =
-        open(i2c_filename.c_str(),
-             O_RDWR);  // Open the I2C bus for reading and writing (O_RDWR)
-    if (bus_fd_ < 0) {
-        throw std::runtime_error(
-            std::format("ERROR: Failed to open I2C bus {} : {}", i2c_bus_,
-                        strerror(errno)));
-    }
-}
 
 GripperInterfaceDriver::GripperInterfaceDriver(std::string can_interface,
                                                int can_enabled,
+                                               short i2c_bus,
+                                               int i2c_address,
                                                int pwm_gain,
                                                int pwm_idle)
     : can_interface_(can_interface),
       can_enabled_(can_enabled),
+      i2c_bus_(i2c_bus),
+      i2c_address_(i2c_address),
       pwm_gain_(pwm_gain),
       pwm_idle_(pwm_idle) {
-    if (canfd_init(can_interface_.c_str())) {
-        throw std::runtime_error(
-            std::format("ERROR: Failed to initialize CAN FD {} : {}",
-                        can_interface_, strerror(errno)));
+    if (can_enabled_) {
+        if (canfd_init(can_interface_.c_str())) {
+            throw std::runtime_error(
+                std::format("ERROR: Failed to initialize CAN FD {} : {}",
+                            can_interface_, strerror(errno)));
+        }
+    } else {
+        std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
+        bus_fd_ =
+            open(i2c_filename.c_str(),
+                 O_RDWR);  // Open the I2C bus for reading and writing (O_RDWR)
+        if (bus_fd_ < 0) {
+            throw std::runtime_error(
+                std::format("ERROR: Failed to open I2C bus {} : {}", i2c_bus_,
+                            strerror(errno)));
+        }
     }
 }
 
