@@ -1,0 +1,6 @@
+/gripper_controller_node:
+  ros__parameters:
+    topics:
+      pos: "/gripper_pos"   # from encoders to this  <--
+      ref: "/gripper_ref"   # from interface_node to this <--
+      uin: "/gripper_u"     # from this to interface -->

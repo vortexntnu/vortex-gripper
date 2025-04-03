@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(gripper_interface)
+project(gripper_controller)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -16,9 +16,9 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 add_executable(${PROJECT_NAME}_node
-  src/gripper_interface_node.cpp
-  src/gripper_interface_ros.cpp
-  src/gripper_interface_driver.cpp
+  src/gripper_controller_node.cpp
+  src/gripper_controller_ros.cpp
+  src/gripper_controller_driver.cpp
 )
 
 ament_target_dependencies(${PROJECT_NAME}_node

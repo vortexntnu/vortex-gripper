@@ -1,0 +1,42 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/alberto/vortex/auto_ws/install/velocity_controller_lqr/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/hybridpath_guidance/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/hybridpath_controller/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/d_star_lite/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/blackbox_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/vortex_msgs/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/system_monitor/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/my_robot_controller/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/joystick_interface_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/joystick_interface_asv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/internal_status_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/internal_status/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/blackbox/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_interface_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_interface/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_data_record_auv/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/alberto/vortex/auto_ws/install/velocity_controller_lqr/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/hybridpath_guidance/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/hybridpath_controller/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/d_star_lite/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/blackbox_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/vortex_msgs/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/system_monitor/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/my_robot_controller/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/joystick_interface_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/joystick_interface_asv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/internal_status_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/internal_status/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/blackbox/lib/python3.10/site-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_interface_auv/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_interface/local/lib/python3.10/dist-packages",
+        "/home/alberto/vortex/auto_ws/install/acoustics_data_record_auv/local/lib/python3.10/dist-packages",
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ]
+}

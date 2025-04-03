@@ -1,8 +1,10 @@
 /gripper_interface_node:
   ros__parameters:
     topics:
-      joy: "/joy"
-      pwm: "/gripper_pwm"
+      joy: "/joy"           # from joy to this node
+      ref: "/gripper_ref"   # from this node to controller -->
+      uin: "/gripper_u"     # from controller to this node <--
+      pwm: "/gripper_pwm"   # from this node to gripper motor drivers
 
     pwm:
       gain: 200 # value range: pwm_idle +/- pwm_gain

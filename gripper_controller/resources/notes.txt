@@ -1,0 +1,10 @@
+LEFT STICK
+left->right     shoulder    1700->1300
+down->up        arm         1300->1700
+
+RIGHT STICK
+left->right     grip        1300->1700
+
+msg:    arm
+        shoulder
+        grip

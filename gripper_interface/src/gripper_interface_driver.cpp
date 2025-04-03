@@ -27,9 +27,9 @@ GripperInterfaceDriver::~GripperInterfaceDriver() {
     }
 }
 
-std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
+std::uint16_t GripperInterfaceDriver::u_to_pwm(const double u) {
     // Convert the joystick value to a PWM value
-    return static_cast<std::uint16_t>(pwm_idle_ + pwm_gain_ * joy_value);
+    return static_cast<std::uint16_t>(u * pwm_gain_ + pwm_idle_);
 }
 
 void GripperInterfaceDriver::send_pwm(

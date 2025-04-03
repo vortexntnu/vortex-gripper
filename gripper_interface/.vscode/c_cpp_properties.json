@@ -1,0 +1,33 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/alberto/vortex/auto_ws/install/vortex_msgs/include/**",
+        "/home/alberto/vortex/auto_ws/install/thrust_allocator_asv/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-asv/motion/thrust_allocator_asv/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-asv/motion/thruster_interface_asv/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/control/dp_adapt_backs_controller/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/control/pid_controller_dp/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/control/pid_controller_dp_euler/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/guidance/los_guidance/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/guidance/reference_filter_dp/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/motion/thrust_allocator_auv/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-auv/motion/thruster_interface_auv/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-gripper/gripper_controller/include/**",
+        "/home/alberto/vortex/auto_ws/src/vortex-gripper/gripper_interface/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

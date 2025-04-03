@@ -34,10 +34,10 @@ class GripperInterfaceDriver {
 
     /**
      * @brief Convert joystick value to PWM value.
-     * @param joy_value The joystick value.
+     * @param u The joystick value.
      * @return The PWM value.
      */
-    std::uint16_t joy_to_pwm(const double joy_value);
+    std::uint16_t u_to_pwm(const double u);
 
     /**
      * @brief Send PWM values to the gripper.
