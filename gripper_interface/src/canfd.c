@@ -18,23 +18,19 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-/* CAN Message recieve enum */
 
 static int sock = -1;
 
-// Initialize CAN FD Interface
 int canfd_init(const char *interface) {
   struct sockaddr_can addr;
   struct ifreq ifr;
 
-  // Create CAN socket
   sock = socket(PF_CAN, SOCK_RAW, CAN_RAW);
   if (sock < 0) {
     perror("Error creating CAN socket");
     return -1;
   }
 
-  // Set interface name
   strncpy(ifr.ifr_name, interface, IFNAMSIZ - 1);
   if (ioctl(sock, SIOCGIFINDEX, &ifr) < 0) {
     perror("Error getting CAN interface index");
@@ -42,7 +38,6 @@ int canfd_init(const char *interface) {
     return -1;
   }
 
-  // Bind socket to CAN interface
   addr.can_family = AF_CAN;
   addr.can_ifindex = ifr.ifr_ifindex;
 
@@ -65,18 +60,16 @@ void set_can_filter(uint16_t start_id, uint16_t id_mask) {
   }
 }
 
-// Send CAN FD Message
 int canfd_send(const CANFD_Message *msg) {
   struct canfd_frame frame;
   memset(&frame, 0, sizeof(frame));
 
-  // Set CAN ID and Frame Type
   frame.can_id = msg->id;
   if (msg->is_extended) {
     frame.can_id |= CAN_EFF_FLAG;
   }
   if (msg->is_fd) {
-    frame.len = msg->length; // CAN FD allows up to 64 bytes
+    frame.len = msg->length;
   } else {
     if (msg->length > 8) {
       perror("CAN 2.0 only supports messages a maximum of 8 bytes payload");
@@ -86,10 +79,8 @@ int canfd_send(const CANFD_Message *msg) {
     /*frame.len = msg->length > CAN_MAX_DLEN ? CAN_MAX_DLEN : msg->length;*/
   }
 
-  // Copy data
   memcpy(frame.data, msg->data, frame.len);
 
-  // Send CAN frame
   if (write(sock, &frame, sizeof(frame)) != sizeof(frame)) {
     perror("Error sending CAN FD message");
     return -1;
@@ -98,7 +89,6 @@ int canfd_send(const CANFD_Message *msg) {
   return 0;
 }
 
-// Receive CAN FD Message
 int canfd_receive(CANFD_Message *msg, int timeout_ms) {
   struct canfd_frame frame;
   struct timeval timeout;
@@ -123,7 +113,6 @@ int canfd_receive(CANFD_Message *msg, int timeout_ms) {
     return -1;
   }
 
-  // Copy data to user structure
   msg->id = frame.can_id & CAN_EFF_MASK;
   msg->is_extended = (frame.can_id & CAN_EFF_FLAG) ? true : false;
   msg->is_fd = true;
@@ -133,9 +122,6 @@ int canfd_receive(CANFD_Message *msg, int timeout_ms) {
   return 0;
 }
 
-// Takes in all data sent from MCU
-// Encoder angles
-// Sensor data
 void canfd_recieve_handler(CANFD_Message *msg) {
   switch (msg->id) {
   case 0x0:
@@ -153,7 +139,6 @@ void canfd_recieve_handler(CANFD_Message *msg) {
   }
 }
 
-// Close CAN FD Socket
 void canfd_close() {
   if (sock >= 0) {
     close(sock);

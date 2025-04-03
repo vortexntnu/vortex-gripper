@@ -63,7 +63,7 @@ void GripperInterfaceDriver::send_pwm(
                             }) |
                             std::views::join;
 
-        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1);
+        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1); 
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
