@@ -20,6 +20,7 @@ find_package(fmt REQUIRED)
 add_executable(${PROJECT_NAME}_node
   src/gripper_interface_node.cpp
   src/gripper_interface_driver.cpp
+  src/canfd.c
 )
 
 target_link_libraries(${PROJECT_NAME}_node fmt::fmt)
