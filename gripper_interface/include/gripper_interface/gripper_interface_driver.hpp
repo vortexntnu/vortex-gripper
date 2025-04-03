@@ -79,10 +79,10 @@ class GripperInterfaceDriver {
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
-    int i2c_bus_;      // I2C bus number
-    int i2c_address_;  // I2C address of the microcontroller
     std::string can_interface_;
     int can_enabled_ = 0;
+    int i2c_bus_;      // I2C bus number
+    int i2c_address_;  // I2C address of the microcontroller
     int pwm_gain_;
     int pwm_idle_;
 

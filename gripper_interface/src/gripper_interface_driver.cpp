@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
+#include <cstdint>
 #include <string>
 #include "canfd.h"
 
@@ -53,17 +54,16 @@ void GripperInterfaceDriver::send_pwm(
     try {
         constexpr std::size_t i2c_data_size =
             1 + 3 * 2;  // 3 thrusters * (1xMSB + 1xLSB)
-        std::vector<std::uint8_t> i2c_data_array;
-        i2c_data_array.reserve(i2c_data_size);
+        std::array<std::uint8_t, i2c_data_size> i2c_data_array;
 
-        i2c_data_array.push_back(0x00);  // "Start" byte
+        i2c_data_array.at(0) = 0x00;  // "Start" byte
         auto joined_bytes = pwm_values |
                             std::views::transform([](std::uint16_t pwm) {
                                 return pwm_to_i2c_data(pwm);
                             }) |
                             std::views::join;
 
-        std::ranges::copy(joined_bytes, std::back_inserter(i2c_data_array));
+        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1);
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
@@ -114,10 +114,7 @@ void GripperInterfaceDriver::send_pwm_can(
 void GripperInterfaceDriver::stop_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
-        std::vector<std::uint8_t> i2c_data_array;
-        i2c_data_array.reserve(i2c_data_size);
-
-        i2c_data_array.push_back(0x01);  // Stop byte stop_gripper
+        std::uint8_t i2c_message = 0x01;
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
@@ -125,8 +122,7 @@ void GripperInterfaceDriver::stop_gripper() {
             return;
         }
 
-        if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
-            i2c_data_size) {
+        if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
             throw std::runtime_error(std::format(
                 "Error: Failed to write to I2C device : {}", strerror(errno)));
         }
@@ -142,10 +138,8 @@ void GripperInterfaceDriver::stop_gripper() {
 void GripperInterfaceDriver::start_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
-        std::vector<std::uint8_t> i2c_data_array;
-        i2c_data_array.reserve(i2c_data_size);
+        std::uint8_t i2c_message = 0x02;
 
-        i2c_data_array.push_back(0x02);  // Start byte start_gripper
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
@@ -153,7 +147,7 @@ void GripperInterfaceDriver::start_gripper() {
             return;
         }
 
-        if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
+        if (write(bus_fd_, &i2c_message, i2c_data_size) !=
             i2c_data_size) {
             throw std::runtime_error(std::format(
                 "Error: Failed to write to I2C device : {}", strerror(errno)));

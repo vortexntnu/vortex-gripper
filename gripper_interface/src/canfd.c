@@ -23,7 +23,7 @@
 static int sock = -1;
 
 // Initialize CAN FD Interface
-int canfd_init(const char* interface) {
+int canfd_init(const char *interface) {
   struct sockaddr_can addr;
   struct ifreq ifr;
 
