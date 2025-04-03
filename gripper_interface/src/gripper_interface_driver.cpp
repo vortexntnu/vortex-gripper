@@ -135,11 +135,33 @@ void GripperInterfaceDriver::stop_gripper() {
     }
 }
 
+void GripperInterfaceDriver::stop_gripper_can() {
+    try {
+        CANFD_Message msg;
+        msg.id = 0x469;
+        msg.is_extended = false;
+        msg.is_fd = true;
+        msg.data[0] = 0x00;
+        msg.length = 1;
+
+        if (canfd_send(&msg)) {
+            throw std::runtime_error(std::format(
+                "Error: Failed to send CAN message: {}", strerror(errno)));
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::error("ERROR: Failed to send stop gripper command - {}",
+                      e.what());
+    } catch (...) {
+        spdlog::error(
+            "ERROR: Failed to send stop gripper command - unknown error");
+    }
+}
+
 void GripperInterfaceDriver::start_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
         std::uint8_t i2c_message = 0x02;
-
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
@@ -147,8 +169,7 @@ void GripperInterfaceDriver::start_gripper() {
             return;
         }
 
-        if (write(bus_fd_, &i2c_message, i2c_data_size) !=
-            i2c_data_size) {
+        if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
             throw std::runtime_error(std::format(
                 "Error: Failed to write to I2C device : {}", strerror(errno)));
         }
@@ -158,6 +179,29 @@ void GripperInterfaceDriver::start_gripper() {
     } catch (...) {
         spdlog::error(
             "ERROR: Failed to send start gripper command - unknown error");
+    }
+}
+
+void GripperInterfaceDriver::start_gripper_can() {
+    try {
+        CANFD_Message msg;
+        msg.id = 0x46A;
+        msg.is_extended = false;
+        msg.is_fd = true;
+        msg.data[0] = 0x00;
+        msg.length = 1;
+
+        if (canfd_send(&msg)) {
+            throw std::runtime_error(std::format(
+                "Error: Failed to send CAN message: {}", strerror(errno)));
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::error("ERROR: Failed to send stop gripper command - {}",
+                      e.what());
+    } catch (...) {
+        spdlog::error(
+            "ERROR: Failed to send stop gripper command - unknown error");
     }
 }
 

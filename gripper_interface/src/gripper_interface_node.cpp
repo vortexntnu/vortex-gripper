@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_node.hpp"
+#include <spdlog/spdlog.h>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -17,8 +18,7 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         std::bind(&GripperInterface::encoder_angles_callback, this));
 
     last_msg_time_ = this->now();
-
-    RCLCPP_INFO(this->get_logger(), "Gripper interface node started.");
+    spdlog::info("Gripper interface node started");
 }
 
 void GripperInterface::extract_parameters() {

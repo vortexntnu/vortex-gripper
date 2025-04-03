@@ -62,12 +62,15 @@ class GripperInterfaceDriver {
      */
     void start_gripper();
 
+    void start_gripper_can();
+
     /**
      * @brief Stop gripper by sending 0x01 first byte
      * @param None
      */
     void stop_gripper();
 
+    void stop_gripper_can(); 
     /**
      * @brief Reads the raw angle of each encoder
      * @param None
