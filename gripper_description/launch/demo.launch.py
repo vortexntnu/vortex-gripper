@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2023 Your Company Name.
+# All rights reserved.
+#
+# This file is part of the <Your Project Name> project.
+# For further information, please see the LICENSE file distributed with this source code.
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
