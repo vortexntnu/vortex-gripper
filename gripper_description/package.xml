@@ -5,7 +5,7 @@
   <version>2.0.8</version>
   <description>Gripper description package</description>
   <maintainer email="nathanif@stud.ntun.no">Nathaniel Førrisdahl</maintainer>
-  <license>BSD</license>
+  <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

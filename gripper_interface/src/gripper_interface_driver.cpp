@@ -1,6 +1,4 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
-#include <cstdint>
-#include <string>
 #include "canfd.h"
 
 GripperInterfaceDriver::GripperInterfaceDriver(std::string can_interface,
@@ -63,7 +61,7 @@ void GripperInterfaceDriver::send_pwm(
                             }) |
                             std::views::join;
 
-        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1); 
+        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1);
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
@@ -206,35 +204,30 @@ void GripperInterfaceDriver::start_gripper_can() {
 }
 
 std::vector<double> GripperInterfaceDriver::encoder_read() {
-    try {
-        constexpr std::size_t i2c_data_size = 6;  // 6 bytes -> 3 angles.
-        std::vector<std::uint8_t> i2c_data_array(i2c_data_size);
-        std::vector<double> encoder_angles;
-        encoder_angles.reserve(i2c_data_size / 2);
+    constexpr std::size_t i2c_data_size = 6;  // 6 bytes -> 3 angles.
+    std::array<std::uint8_t, i2c_data_size> i2c_data_array;
+    std::vector<double> encoder_angles;
+    encoder_angles.reserve(i2c_data_size / 2);
 
+    try {
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
-                "Failed to open I2C bus {} : {}", i2c_bus_, strerror(errno)));
+                "Failed to open I2C bus {}: {}", i2c_bus_, strerror(errno)));
         }
 
         if (read(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
             static_cast<ssize_t>(i2c_data_size)) {
             throw std::runtime_error(std::format(
-                "Error: Failed to read from I2C device : {}", strerror(errno)));
+                "Error: Failed to read from I2C device: {}", strerror(errno)));
         }
 
         const std::size_t num_angles = i2c_data_size / 2;
-        std::vector<std::size_t> indices(num_angles);
-        std::iota(indices.begin(), indices.end(), 0);
-
-        std::ranges::transform(
-            indices, std::back_inserter(encoder_angles),
-            [&](std::size_t idx) -> double {
-                std::array<std::uint8_t, 2> pair = {
-                    i2c_data_array[2 * idx], i2c_data_array[2 * idx + 1]};
-                std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
-                return raw_angle_to_radians(raw_angle);
-            });
+        for (std::size_t idx = 0; idx < num_angles; ++idx) {
+            std::array<std::uint8_t, 2> pair = {i2c_data_array[2 * idx],
+                                                i2c_data_array[2 * idx + 1]};
+            std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
+            encoder_angles.at(idx) = raw_angle_to_radians(raw_angle);
+        }
 
         return encoder_angles;
     } catch (const std::exception& e) {
