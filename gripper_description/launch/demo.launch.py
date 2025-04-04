@@ -18,7 +18,7 @@ ARGUMENTS = [
 def generate_launch_description():
     gripper_description = get_package_share_directory('gripper_description')
     xacro_file = PathJoinSubstitution([gripper_description, 'urdf', 'gripper.urdf.xacro'])
-    namespace = LaunchConfiguration('namespace')
+    # namespace = LaunchConfiguration('namespace')
 
     robot_state_publisher = Node(
         package='robot_state_publisher',
