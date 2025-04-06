@@ -15,4 +15,4 @@
     can:
       is_enabled: 0
       interface: "can0"
-      
+
