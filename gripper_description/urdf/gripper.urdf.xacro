@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="gripper">
+
+  <!-- Parameters -->
+  <xacro:property name="shoulder_length" value="0.1"/>
+  <xacro:property name="wrist_length" value="0.1"/>
+  <xacro:property name="grip_max_extension" value="0.05"/>
+  <xacro:property name="pi" value="3.14159"/>
+
+  <!-- Shoulder link -->
+  <link name="gripper_shoulder_link">
+    <visual>
+      <geometry>
+        <box size="${shoulder_length} 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="grey">
+        <color rgba="0.6 0.6 0.6 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Wrist link -->
+  <link name="gripper_wrist_link">
+    <visual>
+      <geometry>
+        <cylinder radius="0.02" length="${wrist_length}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="silver">
+        <color rgba="0.8 0.8 0.8 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Grip link -->
+  <link name="gripper_grip_link">
+    <visual>
+      <geometry>
+        <box size="0.05 0.01 0.03"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Shoulder joint -->
+  <joint name="shoulder_joint" type="revolute">
+    <parent link="gripper_base_link"/>
+    <child link="gripper_shoulder_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+  </joint>
+
+  <!-- Wrist joint -->
+  <joint name="wrist_joint" type="revolute">
+    <parent link="gripper_shoulder_link"/>
+    <child link="gripper_wrist_link"/>
+    <origin xyz="${shoulder_length} 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-1.57" upper="1.57" effort="10" velocity="1.0"/>
+  </joint>
+
+  <!-- Grip joint -->
+  <joint name="grip_joint" type="prismatic">
+    <parent link="gripper_wrist_link"/>
+    <child link="gripper_grip_link"/>
+    <origin xyz="${wrist_length} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="${grip_max_extension}" effort="10" velocity="0.1"/>
+  </joint>
+
+  <!-- Optional: base link for integration -->
+  <link name="gripper_base_link"/>
+</robot>

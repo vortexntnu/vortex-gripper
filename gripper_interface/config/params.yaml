@@ -3,11 +3,12 @@
     topics:
       joy: "/joy"
       pwm: "/gripper_pwm"
+      joint_state: "/joint_state_gripper"
 
     pwm:
       gain: 200 # value range: pwm_idle +/- pwm_gain
       idle: 1500
 
     i2c:
-      bus: 1
-      address: 0x21
+      bus: 7
+      address: 0x31
