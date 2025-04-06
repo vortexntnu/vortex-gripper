@@ -17,7 +17,6 @@
 #include <ranges>
 #include <string>
 #include <vector>
-#include "canfd.h"
 
 /**
  * @brief Class for interfacing with the gripper.
@@ -33,7 +32,7 @@ class GripperInterfaceDriver {
      * @param pwm_gain The gain for converting joystick values to PWM values.
      * @param pwm_idle The idle PWM value.
      */
-    GripperInterfaceDriver(std::string can_interface, int can_enabled, short i2c_bus,
+    GripperInterfaceDriver(short i2c_bus,
                            int i2c_address,
                            int pwm_gain,
                            int pwm_idle);
@@ -50,11 +49,6 @@ class GripperInterfaceDriver {
      * @param pwm_values The PWM values.
      */
     void send_pwm(const std::vector<std::uint16_t>& pwm_values);
-    /**
-     * @brief Send PWM values to the gripper using CAN.
-     * @param pwm_values The PWM values.
-     */
-    void send_pwm_can(const std::vector<std::uint16_t>& pwm_values);
 
     /**
      * @brief Start gripper by sending 0x02 first byte
@@ -62,7 +56,6 @@ class GripperInterfaceDriver {
      */
     void start_gripper();
 
-    void start_gripper_can();
 
     /**
      * @brief Stop gripper by sending 0x01 first byte
@@ -70,7 +63,6 @@ class GripperInterfaceDriver {
      */
     void stop_gripper();
 
-    void stop_gripper_can(); 
     /**
      * @brief Reads the raw angle of each encoder
      * @param None
@@ -82,8 +74,6 @@ class GripperInterfaceDriver {
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
-    std::string can_interface_;
-    int can_enabled_ = 0;
     int i2c_bus_;      // I2C bus number
     int i2c_address_;  // I2C address of the microcontroller
     int pwm_gain_;

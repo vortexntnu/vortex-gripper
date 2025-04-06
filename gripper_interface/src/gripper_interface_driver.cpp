@@ -1,45 +1,28 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
-#include "canfd.h"
 
-GripperInterfaceDriver::GripperInterfaceDriver(std::string can_interface,
-                                               int can_enabled,
-                                               short i2c_bus,
+GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
                                                int i2c_address,
                                                int pwm_gain,
                                                int pwm_idle)
-    : can_interface_(can_interface),
-      can_enabled_(can_enabled),
-      i2c_bus_(i2c_bus),
+    : i2c_bus_(i2c_bus),
       i2c_address_(i2c_address),
       pwm_gain_(pwm_gain),
       pwm_idle_(pwm_idle) {
-    if (can_enabled_) {
-        if (canfd_init(can_interface_.c_str())) {
-            throw std::runtime_error(
-                std::format("ERROR: Failed to initialize CAN FD {} : {}",
-                            can_interface_, strerror(errno)));
-        }
-    } else {
-        std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
-        bus_fd_ =
-            open(i2c_filename.c_str(),
-                 O_RDWR);  // Open the I2C bus for reading and writing (O_RDWR)
-        if (bus_fd_ < 0) {
-            throw std::runtime_error(
-                std::format("ERROR: Failed to open I2C bus {} : {}", i2c_bus_,
-                            strerror(errno)));
-        }
+    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
+    bus_fd_ =
+        open(i2c_filename.c_str(),
+             O_RDWR);  // Open the I2C bus for reading and writing (O_RDWR)
+    if (bus_fd_ < 0) {
+        throw std::runtime_error(
+            std::format("ERROR: Failed to open I2C bus {} : {}", i2c_bus_,
+                        strerror(errno)));
     }
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
-    if (can_enabled_) {
-        canfd_close();
-    } else {
-        if (bus_fd_ >= 0) {
-            send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
-            close(bus_fd_);
-        }
+    if (bus_fd_ >= 0) {
+        send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
+        close(bus_fd_);
     }
 }
 
@@ -81,34 +64,6 @@ void GripperInterfaceDriver::send_pwm(
     }
 }
 
-void GripperInterfaceDriver::send_pwm_can(
-    const std::vector<std::uint16_t>& pwm_values) {
-    try {
-        CANFD_Message msg;
-        msg.id = 0x46B;
-        constexpr std::size_t can_len = 3 * 2;
-        msg.length = static_cast<uint8_t>(can_len);
-        msg.is_fd = true;
-        msg.is_extended = false;
-
-        auto joined_bytes = pwm_values |
-                            std::views::transform([](std::uint16_t pwm) {
-                                return pwm_to_i2c_data(pwm);
-                            }) |
-                            std::views::join;
-
-        std::ranges::copy(joined_bytes, msg.data);
-        if (canfd_send(&msg)) {
-            throw std::runtime_error(std::format(
-                "Error: Failed to send CAN message: {}", strerror(errno)));
-        }
-
-    } catch (const std::exception& e) {
-        spdlog::error("ERROR: Failed to send PWM values - {}", e.what());
-    } catch (...) {
-        spdlog::error("ERROR: Failed to send PWM values - unknown error");
-    }
-}
 void GripperInterfaceDriver::stop_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
@@ -124,29 +79,6 @@ void GripperInterfaceDriver::stop_gripper() {
             throw std::runtime_error(std::format(
                 "Error: Failed to write to I2C device : {}", strerror(errno)));
         }
-    } catch (const std::exception& e) {
-        spdlog::error("ERROR: Failed to send stop gripper command - {}",
-                      e.what());
-    } catch (...) {
-        spdlog::error(
-            "ERROR: Failed to send stop gripper command - unknown error");
-    }
-}
-
-void GripperInterfaceDriver::stop_gripper_can() {
-    try {
-        CANFD_Message msg;
-        msg.id = 0x469;
-        msg.is_extended = false;
-        msg.is_fd = true;
-        msg.data[0] = 0x00;
-        msg.length = 1;
-
-        if (canfd_send(&msg)) {
-            throw std::runtime_error(std::format(
-                "Error: Failed to send CAN message: {}", strerror(errno)));
-        }
-
     } catch (const std::exception& e) {
         spdlog::error("ERROR: Failed to send stop gripper command - {}",
                       e.what());
@@ -177,29 +109,6 @@ void GripperInterfaceDriver::start_gripper() {
     } catch (...) {
         spdlog::error(
             "ERROR: Failed to send start gripper command - unknown error");
-    }
-}
-
-void GripperInterfaceDriver::start_gripper_can() {
-    try {
-        CANFD_Message msg;
-        msg.id = 0x46A;
-        msg.is_extended = false;
-        msg.is_fd = true;
-        msg.data[0] = 0x00;
-        msg.length = 1;
-
-        if (canfd_send(&msg)) {
-            throw std::runtime_error(std::format(
-                "Error: Failed to send CAN message: {}", strerror(errno)));
-        }
-
-    } catch (const std::exception& e) {
-        spdlog::error("ERROR: Failed to send stop gripper command - {}",
-                      e.what());
-    } catch (...) {
-        spdlog::error(
-            "ERROR: Failed to send stop gripper command - unknown error");
     }
 }
 

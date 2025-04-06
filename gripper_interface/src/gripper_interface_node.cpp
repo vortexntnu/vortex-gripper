@@ -11,8 +11,7 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
         joint_state_topic_, 10);
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-        can_interface_, can_enabled_, i2c_bus_, i2c_address_, pwm_gain_,
-        pwm_idle_);
+        i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
 
     watchdog_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),
@@ -30,8 +29,6 @@ void GripperInterface::extract_parameters() {
     this->declare_parameter<int>("pwm.idle");
     this->declare_parameter<int>("i2c.bus");
     this->declare_parameter<int>("i2c.address");
-    this->declare_parameter<int>("can.is_enabled");
-    this->declare_parameter<std::string>("can.interface");
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
@@ -41,8 +38,6 @@ void GripperInterface::extract_parameters() {
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
     this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
     this->i2c_address_ = this->get_parameter("i2c.address").as_int();
-    this->can_enabled_ = this->get_parameter("can.is_enabled").as_int();
-    this->can_interface_ = this->get_parameter("can.interface").as_string();
 }
 
 void GripperInterface::joy_callback(
