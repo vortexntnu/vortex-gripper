@@ -9,6 +9,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
                   std::placeholders::_1));
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
+    joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
+        joint_state_topic_, 10);
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
         can_interface_, can_enabled_, i2c_bus_, i2c_address_, pwm_gain_,
         pwm_idle_);
@@ -24,6 +26,7 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
 void GripperInterface::extract_parameters() {
     this->declare_parameter<std::string>("topics.joy");
     this->declare_parameter<std::string>("topics.pwm");
+    this->declare_parameter<std::string>("topics.joint_state");
     this->declare_parameter<int>("pwm.gain");
     this->declare_parameter<int>("pwm.idle");
     this->declare_parameter<int>("i2c.bus");
@@ -33,6 +36,8 @@ void GripperInterface::extract_parameters() {
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
+    this->joint_state_topic_ =
+        this->get_parameter("topics.joint_state").as_string();
     this->pwm_gain_ = this->get_parameter("pwm.gain").as_int();
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
     this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();

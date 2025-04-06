@@ -40,6 +40,7 @@ class GripperInterface : public rclcpp::Node {
 
     std::string joy_topic_;
     std::string pwm_topic_;
+    std::string joint_state_topic_;
     int i2c_bus_;
     int i2c_address_;
     int pwm_gain_;

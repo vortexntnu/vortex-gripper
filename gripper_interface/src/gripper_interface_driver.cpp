@@ -205,9 +205,10 @@ void GripperInterfaceDriver::start_gripper_can() {
 
 std::vector<double> GripperInterfaceDriver::encoder_read() {
     constexpr std::size_t i2c_data_size = 6;  // 6 bytes -> 3 angles.
+    constexpr std::size_t num_angles = i2c_data_size / 2;
     std::array<std::uint8_t, i2c_data_size> i2c_data_array;
     std::vector<double> encoder_angles;
-    encoder_angles.reserve(i2c_data_size / 2);
+    encoder_angles.reserve(num_angles);
 
     try {
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
@@ -221,12 +222,11 @@ std::vector<double> GripperInterfaceDriver::encoder_read() {
                 "Error: Failed to read from I2C device: {}", strerror(errno)));
         }
 
-        const std::size_t num_angles = i2c_data_size / 2;
-        for (std::size_t idx = 0; idx < num_angles; ++idx) {
-            std::array<std::uint8_t, 2> pair = {i2c_data_array[2 * idx],
-                                                i2c_data_array[2 * idx + 1]};
+        for (std::size_t i = 0; i < num_angles; ++i) {
+            std::array<std::uint8_t, 2> pair = {i2c_data_array[2 * i],
+                                                i2c_data_array[2 * i + 1]};
             std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
-            encoder_angles.at(idx) = raw_angle_to_radians(raw_angle);
+            encoder_angles.at(i) = raw_angle_to_radians(raw_angle);
         }
 
         return encoder_angles;
