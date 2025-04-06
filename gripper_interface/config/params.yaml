@@ -12,7 +12,4 @@
     i2c:
       bus: 7
       address: 0x31
-    can:
-      is_enabled: 0
-      interface: "can0"
 
