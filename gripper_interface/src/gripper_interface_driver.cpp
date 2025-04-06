@@ -226,7 +226,7 @@ std::vector<double> GripperInterfaceDriver::encoder_read() {
             std::array<std::uint8_t, 2> pair = {i2c_data_array[2 * i],
                                                 i2c_data_array[2 * i + 1]};
             std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
-            encoder_angles.at(i) = raw_angle_to_radians(raw_angle);
+            encoder_angles.push_back(raw_angle_to_radians(raw_angle));
         }
 
         return encoder_angles;

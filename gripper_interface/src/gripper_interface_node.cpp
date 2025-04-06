@@ -1,5 +1,4 @@
 #include "gripper_interface/gripper_interface_node.hpp"
-#include <spdlog/spdlog.h>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
