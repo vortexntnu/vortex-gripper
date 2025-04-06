@@ -56,7 +56,6 @@ class GripperInterfaceDriver {
      */
     void start_gripper();
 
-
     /**
      * @brief Stop gripper by sending 0x01 first byte
      * @param None
@@ -66,7 +65,7 @@ class GripperInterfaceDriver {
     /**
      * @brief Reads the raw angle of each encoder
      * @param None
-     * @Return vector containg the angles of the shoulder, wrist and grip in
+     * @Return vector containing the angles of the shoulder, wrist and grip in
      * order
      */
 

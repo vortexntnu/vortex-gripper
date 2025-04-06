@@ -1,15 +1,15 @@
 #ifndef GRIPPER_INTERFACE_HPP
 #define GRIPPER_INTERFACE_HPP
 
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joy.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <std_msgs/msg/int16_multi_array.hpp>
-#include "gripper_interface/gripper_interface_driver.hpp"
 #include <chrono>
 #include <cstdint>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <sensor_msgs/msg/joy.hpp>
+#include <std_msgs/msg/int16_multi_array.hpp>
 #include <string>
 #include <vector>
+#include "gripper_interface/gripper_interface_driver.hpp"
 
 class GripperInterface : public rclcpp::Node {
    public:
@@ -20,7 +20,7 @@ class GripperInterface : public rclcpp::Node {
      * @brief Extract parameters from the config file.
      */
     void extract_parameters();
-    
+
     void set_publisher_and_subsribers();
 
     /**
