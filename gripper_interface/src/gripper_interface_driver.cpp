@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
+#include <cstddef>
 
 GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
                                                int i2c_address,
@@ -38,13 +39,12 @@ void GripperInterfaceDriver::send_pwm(
         std::array<std::uint8_t, i2c_data_size> i2c_data_array;
 
         i2c_data_array.at(0) = 0x00;  // "Start" byte
-        auto joined_bytes = pwm_values |
-                            std::views::transform([](std::uint16_t pwm) {
-                                return pwm_to_i2c_data(pwm);
-                            }) |
-                            std::views::join;
 
-        std::ranges::copy(joined_bytes, i2c_data_array.begin() + 1);
+        for (std::size_t i = 1; i < 4; i++) {
+            i2c_data_array[2 * i - 1] =
+                static_cast<uint8_t>((pwm_values[i] >> 8) & 0xFF);
+            i2c_data_array[2 * i] = static_cast<uint8_t>(pwm_values[i] & 0xFF);
+        }
 
         if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
             throw std::runtime_error(std::format(
