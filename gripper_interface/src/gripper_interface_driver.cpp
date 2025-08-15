@@ -18,6 +18,12 @@ GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
             std::format("ERROR: Failed to open I2C bus {} : {}", i2c_bus_,
                         strerror(errno)));
     }
+
+    if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
+        throw std::runtime_error(std::format("Failed to open I2C bus {} : {}",
+                                             i2c_bus_, strerror(errno)));
+        return;
+    }
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
@@ -46,12 +52,6 @@ void GripperInterfaceDriver::send_pwm(
             i2c_data_array[2 * i] = static_cast<uint8_t>(pwm_values[i] & 0xFF);
         }
 
-        if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
-            throw std::runtime_error(std::format(
-                "Failed to open I2C bus {} : {}", i2c_bus_, strerror(errno)));
-            return;
-        }
-
         if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
             i2c_data_size) {
             throw std::runtime_error(std::format(
@@ -68,12 +68,6 @@ void GripperInterfaceDriver::stop_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
         std::uint8_t i2c_message = 0x01;
-
-        if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
-            throw std::runtime_error(std::format(
-                "Failed to open I2C bus {} : {}", i2c_bus_, strerror(errno)));
-            return;
-        }
 
         if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
             throw std::runtime_error(std::format(
@@ -92,12 +86,6 @@ void GripperInterfaceDriver::start_gripper() {
     try {
         constexpr std::size_t i2c_data_size = 1;
         std::uint8_t i2c_message = 0x02;
-
-        if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
-            throw std::runtime_error(std::format(
-                "Failed to open I2C bus {} : {}", i2c_bus_, strerror(errno)));
-            return;
-        }
 
         if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
             throw std::runtime_error(std::format(
@@ -120,11 +108,6 @@ std::vector<double> GripperInterfaceDriver::encoder_read() {
     encoder_angles.reserve(num_angles);
 
     try {
-        if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
-            throw std::runtime_error(std::format(
-                "Failed to open I2C bus {}: {}", i2c_bus_, strerror(errno)));
-        }
-
         if (read(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
             static_cast<ssize_t>(i2c_data_size)) {
             throw std::runtime_error(std::format(
