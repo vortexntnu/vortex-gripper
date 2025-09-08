@@ -69,7 +69,7 @@ class GripperInterfaceDriver {
      * order
      */
 
-    std::vector<double> encoder_read();
+    std::vector<double> read_encoders();
 
    private:
     int bus_fd_;       // File descriptor for I2C bus

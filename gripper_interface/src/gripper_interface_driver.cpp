@@ -44,7 +44,7 @@ void GripperInterfaceDriver::send_pwm(
             1 + 3 * 2;  // 3 thrusters * (1xMSB + 1xLSB)
         std::array<std::uint8_t, i2c_data_size> i2c_data_array;
 
-        i2c_data_array.at(0) = 0x00;  // "Start" byte
+        i2c_data_array[0] = 0x00;  // "Start" byte
 
         for (std::size_t i = 1; i < 4; i++) {
             i2c_data_array[2 * i - 1] =
@@ -100,7 +100,7 @@ void GripperInterfaceDriver::start_gripper() {
     }
 }
 
-std::vector<double> GripperInterfaceDriver::encoder_read() {
+std::vector<double> GripperInterfaceDriver::read_encoders() {
     constexpr std::size_t i2c_data_size = 6;  // 6 bytes -> 3 angles.
     constexpr std::size_t num_angles = i2c_data_size / 2;
     std::array<std::uint8_t, i2c_data_size> i2c_data_array;
