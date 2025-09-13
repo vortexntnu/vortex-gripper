@@ -40,20 +40,19 @@ std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
 void GripperInterfaceDriver::send_pwm(
     const std::vector<std::uint16_t>& pwm_values) {
     try {
+        constexpr std::size_t num_servos = 3;
         constexpr std::size_t i2c_data_size =
-            1 + 3 * 2;  // 3 thrusters * (1xMSB + 1xLSB)
-        std::array<std::uint8_t, i2c_data_size> i2c_data_array;
+            1 + num_servos * 2;  // 3 thrusters * (1xMSB + 1xLSB)
+        std::array<std::uint8_t, i2c_data_size> buf;
 
-        i2c_data_array[0] = 0x00;  // "Start" byte
+        buf[0] = 0x00;  // "Start" byte
 
-        for (std::size_t i = 1; i < 4; i++) {
-            i2c_data_array[2 * i - 1] =
-                static_cast<uint8_t>((pwm_values[i] >> 8) & 0xFF);
-            i2c_data_array[2 * i] = static_cast<uint8_t>(pwm_values[i] & 0xFF);
+        for (std::size_t i = 0; i < 3; i++) {
+            buf[1 + 2 * i] = static_cast<uint8_t>((pwm_values[i] >> 8) & 0xFF);
+            buf[1 + 2 * i + 1] = static_cast<uint8_t>(pwm_values[i] & 0xFF);
         }
 
-        if (write(bus_fd_, i2c_data_array.data(), i2c_data_size) !=
-            i2c_data_size) {
+        if (write(bus_fd_, buf.data(), i2c_data_size) != i2c_data_size) {
             throw std::runtime_error(std::format(
                 "Error: Failed to write to I2C device : {}", strerror(errno)));
         }
