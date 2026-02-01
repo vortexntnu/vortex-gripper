@@ -37,6 +37,13 @@ class GripperInterfaceDriver {
                            int pwm_gain,
                            int pwm_idle);
 
+
+    /**
+     * @brief init i2c
+     * @return 0 on success
+     */
+    int init_i2c();
+
     /**
      * @brief Convert joystick value to PWM value.
      * @param joy_value The joystick value.
@@ -48,19 +55,19 @@ class GripperInterfaceDriver {
      * @brief Send PWM values to the gripper.
      * @param pwm_values The PWM values.
      */
-    void send_pwm(const std::vector<std::uint16_t>& pwm_values);
+    int send_pwm(const std::vector<std::uint16_t>& pwm_values);
 
     /**
      * @brief Start gripper by sending 0x02 first byte
      * @param None
      */
-    void start_gripper();
+    int start_gripper();
 
     /**
      * @brief Stop gripper by sending 0x01 first byte
      * @param None
      */
-    void stop_gripper();
+    int stop_gripper();
 
     /**
      * @brief Reads the raw angle of each encoder
