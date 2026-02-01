@@ -45,7 +45,7 @@ int GripperInterfaceDriver::send_pwm(
 
     buf[0] = 0x00;  // "Start" byte
 
-    std::memcpy(buf.data(), pwm_values.data(), i2c_data_size);
+    std::memcpy(buf.data() + 1, pwm_values.data(), i2c_data_size - 1);
 
     if (write(bus_fd_, buf.data(), i2c_data_size) != i2c_data_size) {
         return -1;
