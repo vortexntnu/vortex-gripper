@@ -16,6 +16,8 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(geometry_msgs REQUIRED)
+
 
 add_executable(${PROJECT_NAME}_node
   src/gripper_interface_node.cpp
