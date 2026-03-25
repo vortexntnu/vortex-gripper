@@ -38,6 +38,7 @@ class GripperInterfaceDriver {
                            int pwm_idle);
 
 
+
     /**
      * @brief init i2c
      * @return 0 on success
@@ -84,6 +85,7 @@ class GripperInterfaceDriver {
     int i2c_address_;  // I2C address of the microcontroller
     int pwm_gain_;
     int pwm_idle_;
+    can_interface can_;
 
     /**
      * @brief Convert PWM value to I2C data.
@@ -113,6 +115,7 @@ class GripperInterfaceDriver {
     static constexpr double raw_angle_to_radians(std::uint16_t raw_angle) {
         return (static_cast<double>(raw_angle) / 0x3FFF) * (2.0 * M_PI);
     }
+
 };  // class GripperInterfaceDriver
 
 #endif  // GRIPPER_INTERFACE_DRIVER_HPP

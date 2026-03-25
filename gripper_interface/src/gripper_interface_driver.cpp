@@ -1,28 +1,19 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
 #include <cstddef>
+#include "can_interface.hpp"
 
 GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
                                                int i2c_address,
                                                int pwm_gain,
                                                int pwm_idle)
-    : i2c_bus_(i2c_bus),
-      i2c_address_(i2c_address),
-      pwm_gain_(pwm_gain),
-      pwm_idle_(pwm_idle) {}
+    : pwm_gain_(pwm_gain), pwm_idle_(pwm_idle) {}
 
-int GripperInterfaceDriver::init_i2c() {
-    std::string i2c_filename = std::format("/dev/i2c-{}", i2c_bus_);
-    bus_fd_ =
-        open(i2c_filename.c_str(),
-             O_RDWR);  // Open the I2C bus for reading and writing (O_RDWR)
-    if (bus_fd_ < 0) {
-        return bus_fd_;
+can_status GripperInterfaceDriver::init_can() {
+    if (can_.init("can0")) {
+        return can_status::ERR_NOT_INITIALIZED;
     }
 
-    if (ioctl(bus_fd_, I2C_SLAVE, i2c_address_) < 0) {
-        return -1;
-    }
-    return 0;
+    return (can_.set_filter(0x46D));
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
@@ -36,51 +27,45 @@ std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
     return static_cast<std::uint16_t>(pwm_idle_ + pwm_gain_ * joy_value);
 }
 
-int GripperInterfaceDriver::send_pwm(
+can_status GripperInterfaceDriver::send_pwm(
     const std::vector<std::uint16_t>& pwm_values) {
+    static constexpr uint32_t GRIPPER_PWM_CAN_ID = 0x46C;
     constexpr std::size_t num_servos = 3;
-    constexpr std::size_t i2c_data_size =
-        1 + num_servos * 2;  // 3 thrusters * (1xMSB + 1xLSB)
-    std::array<std::uint8_t, i2c_data_size> buf;
+    constexpr std::size_t data_size =
+        num_servos * 2;  // 3 thrusters * (1xMSB + 1xLSB)
+    std::array<std::uint8_t, data_size> buf;
 
-    buf[0] = 0x00;  // "Start" byte
+    std::memcpy(buf.data(), pwm_values.data(), data_size);
 
-    std::memcpy(buf.data() + 1, pwm_values.data(), i2c_data_size - 1);
-
-    if (write(bus_fd_, buf.data(), i2c_data_size) != i2c_data_size) {
-        return -1;
-    }
-    return 0;
+    return (can_.send(GRIPPER_PWM_CAN_ID, buf, data_size, true) !=
+            can_status::OK);
 }
 
 int GripperInterfaceDriver::stop_gripper() {
-    constexpr std::size_t i2c_data_size = 1;
-    std::uint8_t i2c_message = 0x01;
+    static constexpr uint32_t GRIPPER_STOP_CAN_ID = 0x469;
+    constexpr std::size_t data_size = 1;
+    std::uint8_t data = 0x00;
 
-    if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
-        return -1;
-    }
-    return 0;
+    return (can_.send(GRIPPER_STOP_CAN_ID, &data, data_size, true) !=
+            can_status::OK);
 }
 
 int GripperInterfaceDriver::start_gripper() {
-    constexpr std::size_t i2c_data_size = 1;
-    std::uint8_t i2c_message = 0x02;
+    static constexpr uint32_t GRIPPER_START_CAN_ID = 0x46A;
+    constexpr std::size_t data_size = 1;
+    std::uint8_t data = 0x02;
 
-    if (write(bus_fd_, &i2c_message, i2c_data_size) != i2c_data_size) {
-        return -1;
-    }
-    return 0;
+    return (can_.send(GRIPPER_START_CAN_ID, &data, data_size, true) !=
+            can_status::OK);
 }
 
 std::vector<double> GripperInterfaceDriver::read_encoders() {
-    constexpr std::size_t i2c_data_size = 6;  // 6 bytes -> 3 angles.
-    constexpr std::size_t num_angles = i2c_data_size / 2;
-    std::array<std::uint8_t, i2c_data_size> i2c_data_array;
+    constexpr std::size_t num_angles = 2;
     std::vector<double> encoder_angles;
     encoder_angles.reserve(num_angles);
 
-    if (read(bus_fd_, i2c_data_array.data(), i2c_data_size) != i2c_data_size) {
+    canfd_frame encoder_data{};
+    if (can_.receive(encoder_data, 1000){
         return {};
     }
 
