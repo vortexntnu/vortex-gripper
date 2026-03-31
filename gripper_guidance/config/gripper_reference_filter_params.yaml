@@ -1,0 +1,14 @@
+ /**:
+  ros__parameters:
+    # Filter dynamics parameters
+    zeta: [1.0, 1.0]    
+    omega: [0.2, 0.2]   
+
+    # Topics
+    topics:
+      guidance_gripper: "vortex/gripper/guidance"
+      gripper_state: "vortex/gripper/state"
+      
+    # Action servers
+    action_servers:
+      gripper_reference_filter: "vortex/gripper/reference_filter"

@@ -4,15 +4,16 @@ find_package(GTest REQUIRED)
 include(GoogleTest)
 
 set(TEST_BINARY_NAME ${PROJECT_NAME}_test)
+
 add_executable(
     ${TEST_BINARY_NAME}
-    test_reference_filter.cpp
+    test_gripper_controller.cpp
 )
 
 target_link_libraries(
     ${TEST_BINARY_NAME}
     PRIVATE
-    ${LIB_NAME}
+    ${CORE_LIB_NAME}
     GTest::GTest
 )
 

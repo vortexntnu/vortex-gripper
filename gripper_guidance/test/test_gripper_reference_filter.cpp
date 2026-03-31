@@ -1,4 +1,4 @@
- #include <gtest/gtest.h>
+#include <gtest/gtest.h>
 #include "gripper_reference_filter/gripper_reference_filter.hpp"
 
 using namespace vortex::guidance;

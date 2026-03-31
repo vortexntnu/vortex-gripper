@@ -12,7 +12,7 @@ struct GripperReferenceFilterParams {
 
 class GripperReferenceFilter {
    public:
-    explicit GripperReferenceFilter(const ReferenceFilterParams& params);
+    explicit GripperReferenceFilter(const GripperReferenceFilterParams& params);
 
     // @brief Calculate the state derivative
     // @param x The state vector 6x1
@@ -20,7 +20,7 @@ class GripperReferenceFilter {
     // @return The state derivative 6x1
     // REF: Handbook of Marine Craft Hydrodynamics and Motion Control, Fossen
     // 2021 p. 336 eq: 12.5
-    Eigen::Vector2d calculate_x_dot(const Eigen::Vector6d& x,
+    Eigen::Vector6d calculate_x_dot(const Eigen::Vector6d& x,
                                      const Eigen::Vector2d& r);
 
     // @brief Calculate the state transition matrix

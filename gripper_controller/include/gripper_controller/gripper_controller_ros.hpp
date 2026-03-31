@@ -1,53 +1,64 @@
-#ifndef GRIPPER_CONTROLLER_DP__GRIPPER_CONTROLLER_ROS_HPP_
-#define GRIPPER_CONTROLLER_DP__GRIPPER_CONTROLLER_ROS_HPP_
+#ifndef GRIPPER_CONTROLLER__GRIPPER_CONTROLLER_ROS_HPP_
+#define GRIPPER_CONTROLLER__GRIPPER_CONTROLLER_ROS_HPP_
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
+#include <chrono>
+#include <functional>
+#include <mutex>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_components/register_node_macro.hpp>
+#include <vortex_msgs/msg/gripper_reference_filter.hpp>
+#include <vortex_msgs/msg/gripper_state.hpp>
+#include <vortex_msgs/msg/gripper_state_velocity_command.hpp>
+#include <vortex/utils/ros/qos_profiles.hpp>
+#include "gripper_controller/gripper_controller.hpp"
+#include "gripper_controller/gripper_controller_translator.hpp"
+#include "gripper_controller/gripper_controller_typedefs.hpp"
 
+// ---------------------------------------------------------------------------
+// Responsibility: ROS wiring only — subscriptions, publications, parameter
+// loading, and timer setup. All control mathematics live in GripperController.
+// All message translation lives in gripper_controller::translator.
+// ---------------------------------------------------------------------------
 
-class GripperControllerNode()  : public rclcpp::Node {
-  public: 
-    GripperControllerNode(); 
-    explicit  GripperControllerNode(
-        const rclcpp::NodeOptions& options = rclcpp::NodeOptions()
-        );
-  private:
-    // @brief Set the subscribers and publishers
-    void set_subscribers_and_publisher();
-    
-    //TODO: Define the callback for the GripperReference node after it's been made
-    //
-    //
-    //
-    //
-    //
-    //
+namespace vortex::controller {
 
-    //TODO: You won't be needing this one (PoseStamped) nephew, consult Cyprian if remove
+class GripperControllerNode : public rclcpp::Node {
+public:
+  explicit GripperControllerNode(const rclcpp::NodeOptions & options);
 
-    // @brief Callback for the reference topic
-    // @param msg The reference message
-    void reference_callback(
-        const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+private:
+  void reference_callback(
+    const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_msg);
 
-    //TODO: Nor will you probably need this (PoseWithCovStamped) one too, consult Cyprian if remove
+  void state_callback(
+    const vortex_msgs::msg::GripperState::SharedPtr state_msg);
 
-    // @brief Callback for the pose topic 
-    // @pram msg The pose message 
-    void pose_callback(
-        const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+  void publish_control();
 
-    
-    rclcpp::Publisher<vortex_msgs::msg::ReferenceFilter>::SharedPtr
-        reference_pub_;
+  void set_controller_params();
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr
-        reference_sub_;
+  void set_subscribers_and_publisher();
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr
-        pose_sub_;
+  GripperController controller_;
 
+  rclcpp::Subscription<vortex_msgs::msg::GripperReferenceFilter>::SharedPtr
+    reference_sub_;
+  rclcpp::Subscription<vortex_msgs::msg::GripperState>::SharedPtr
+    state_sub_;
+  rclcpp::Publisher<vortex_msgs::msg::GripperStateVelocityCommand>::SharedPtr
+    control_pub_;
+
+  rclcpp::TimerBase::SharedPtr control_timer_;
+  std::chrono::milliseconds time_step_;
+
+  std::mutex state_mutex_;
+
+  double roll_ref_ = 0.0;
+  double pinch_ref_ = 0.0;
+  double roll_measured_ = 0.0;
+  double pinch_measured_ = 0.0;
 };
 
-#endif // GRIPPER_CONTROLLER_DP__GRIPPER_CONTROLLER_ROS_HPP_
+} // namespace vortex::controller
+
+#endif // GRIPPER_CONTROLLER__GRIPPER_CONTROLLER_ROS_HPP_

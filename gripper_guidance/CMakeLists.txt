@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(reference_filter_dp)
+project(gripper_reference_filter)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 20)
@@ -27,8 +27,8 @@ include_directories(include)
 set(LIB_NAME "${PROJECT_NAME}_component")
 
 add_library(${LIB_NAME} SHARED
-  src/reference_filter.cpp
-  src/reference_filter_ros.cpp)
+  src/gripper_reference_filter.cpp
+  src/gripper_reference_filter_ros.cpp)
 
 ament_target_dependencies(${LIB_NAME} PUBLIC
   rclcpp
@@ -46,7 +46,7 @@ ament_target_dependencies(${LIB_NAME} PUBLIC
 
 rclcpp_components_register_node(
   ${LIB_NAME}
-  PLUGIN "ReferenceFilterNode"
+  PLUGIN "vortex::guidance::GripperReferenceFilterNode"
   EXECUTABLE ${PROJECT_NAME}_node
 )
 

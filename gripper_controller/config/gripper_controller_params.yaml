@@ -1,0 +1,19 @@
+ /**:
+  ros__parameters:
+    # Control loop timing
+    time_step_ms: 10         # milliseconds — must match reference filter time step
+
+    # Proportional gain — tune after gear ratio calibration
+    # Diagonal P-controller: vel = diag(kp_roll, kp_pinch) * position_error
+    kp:
+      roll:  1.0             # TODO: tune
+      pinch: 1.0             # TODO: tune
+
+    # Topics
+    topics:
+      # Input: smoothed reference from the gripper reference filter
+      reference: "vortex/gripper/guidance"
+      # Input: raw measured gripper state from the interface node
+      state:     "vortex/gripper/state"
+      # Output: velocity command (JointState.velocity) to the interface node
+      control:   "vortex/gripper/control"
