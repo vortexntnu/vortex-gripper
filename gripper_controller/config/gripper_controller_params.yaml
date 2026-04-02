@@ -15,5 +15,5 @@
       reference: "vortex/gripper/guidance"
       # Input: raw measured gripper state from the interface node
       state:     "vortex/gripper/state"
-      # Output: velocity command (JointState.velocity) to the interface node
+      # Output: velocity command to the interface node
       control:   "vortex/gripper/control"
