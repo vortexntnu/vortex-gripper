@@ -37,6 +37,14 @@ class GripperInterfaceDriver {
                            int pwm_gain,
                            int pwm_idle);
 
+
+
+    /**
+     * @brief init i2c
+     * @return 0 on success
+     */
+    int init_i2c();
+
     /**
      * @brief Convert joystick value to PWM value.
      * @param joy_value The joystick value.
@@ -48,19 +56,19 @@ class GripperInterfaceDriver {
      * @brief Send PWM values to the gripper.
      * @param pwm_values The PWM values.
      */
-    void send_pwm(const std::vector<std::uint16_t>& pwm_values);
+    int send_pwm(const std::vector<std::uint16_t>& pwm_values);
 
     /**
      * @brief Start gripper by sending 0x02 first byte
      * @param None
      */
-    void start_gripper();
+    int start_gripper();
 
     /**
      * @brief Stop gripper by sending 0x01 first byte
      * @param None
      */
-    void stop_gripper();
+    int stop_gripper();
 
     /**
      * @brief Reads the raw angle of each encoder
@@ -69,7 +77,7 @@ class GripperInterfaceDriver {
      * order
      */
 
-    std::vector<double> encoder_read();
+    std::vector<double> read_encoders();
 
    private:
     int bus_fd_;       // File descriptor for I2C bus
@@ -77,6 +85,7 @@ class GripperInterfaceDriver {
     int i2c_address_;  // I2C address of the microcontroller
     int pwm_gain_;
     int pwm_idle_;
+    can_interface can_;
 
     /**
      * @brief Convert PWM value to I2C data.
@@ -106,6 +115,7 @@ class GripperInterfaceDriver {
     static constexpr double raw_angle_to_radians(std::uint16_t raw_angle) {
         return (static_cast<double>(raw_angle) / 0x3FFF) * (2.0 * M_PI);
     }
+
 };  // class GripperInterfaceDriver
 
 #endif  // GRIPPER_INTERFACE_DRIVER_HPP
