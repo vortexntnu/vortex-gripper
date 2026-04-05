@@ -3,8 +3,10 @@
 namespace vortex::guidance {
 
 GripperReferenceFilter::GripperReferenceFilter(const GripperReferenceFilterParams& params) {
-    calculate_Ad(params.omega, params.zeta);
-    calculate_Bd(params.omega);
+   Ad_.setZero(); 
+   Bd_.setZero();
+   calculate_Ad(params.omega, params.zeta);
+   calculate_Bd(params.omega);
 }
 
 Eigen::Vector6d GripperReferenceFilter::calculate_x_dot(const Eigen::Vector6d& x,

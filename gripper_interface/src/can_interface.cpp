@@ -1,4 +1,4 @@
-#include "can_interface.hpp"
+#include "gripper_interface/can_interface.hpp"
 #include <iostream>
 #include <cstring>
 #include <unistd.h>

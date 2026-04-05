@@ -1,0 +1,5 @@
+gripper_interface_node:
+  ros__parameters:
+    can_interface: "vcan0"
+    topics.gripper_state: "vortex/gripper/state"
+    topics.velocity_command: "vortex/gripper/control"

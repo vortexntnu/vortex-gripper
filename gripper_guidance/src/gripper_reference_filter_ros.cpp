@@ -12,7 +12,7 @@ const auto start_message = R"(
  / ___|_ __ (_)_ __  _ __   ___ _ __  |  _ \ ___ / _| ___ _ __ ___ _ __   ___ ___  |  ___(_) | |_ ___ _ __ 
 | |  _| '_ \| | '_ \| '_ \ / _ \ '__| | |_) / _ \ |_ / _ \ '__/ _ \ '_ \ / __/ _ \ | |_  | | | __/ _ \ '__|
 | |_| | |_) | | |_) | |_) |  __/ |    |  _ <  __/  _|  __/ | |  __/ | | | (_|  __/ |  _| | | | ||  __/ |   
- \____| .__/|_| .__/| .__/ \___|_|    |_| \_\___|_|  \___|_|  \___|_| |_|\___\___| |_|   |_|_|\__\\___|_|   
+ \____| .__/|_| .__/| .__/ \___|_|    |_| \_\___|_|  \___|_|  \___|_| |_|\___\___| |_|   |_|_|\__\\\___|_|   
       |_|     |_|   |_|                                                                                      
 
  )";
@@ -91,9 +91,9 @@ void GripperReferenceFilterNode::set_refererence_filter() {
 
 void GripperReferenceFilterNode::reference_callback(
     const vortex_msgs::msg::GripperState::SharedPtr msg) {
-       std::lock_guard<std::mutex> lock(mutex_);
-       reference_ << msg->roll, msg->pinch;
-   }
+    std::lock_guard<std::mutex> lock(mutex_);
+    reference_ << msg->roll, msg->pinch;
+}
 
 rclcpp_action::GoalResponse GripperReferenceFilterNode::handle_goal(
     const rclcpp_action::GoalUUID& uuid,
@@ -122,33 +122,22 @@ rclcpp_action::CancelResponse GripperReferenceFilterNode::handle_cancel(
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-
 void GripperReferenceFilterNode::handle_accepted(
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<
         vortex_msgs::action::GripperReferenceFilterWaypoint>> goal_handle) {
-       std::thread{std::bind(&GripperReferenceFilterNode::execute, this,
-                  std::placeholders::_1), goal_handle}.detach();
-   }
-
-
-//void GripperReferenceFilterNode::handle_accepted(
-//    const std::shared_ptr<rclcpp_action::ServerGoalHandle<
-//        vortex_msgs::action::GripperReferenceFilterWaypoint>> goal_handle) {
-//    execute(goal_handle);
-//}
+    std::thread{std::bind(&GripperReferenceFilterNode::execute, this,
+                std::placeholders::_1), goal_handle}.detach();
+}
 
 Eigen::Vector6d GripperReferenceFilterNode::fill_reference_state() {
-
     Eigen::Vector6d x = Eigen::Vector6d::Zero();
    
-    x(0) = vortex::utils::math::ssa(reference_(0)); //roll
-    x(1) = reference_(1);                           //pinch
-
-    x(2) = 0.0;                                     //roll_dot
-    x(3) = 0.0;                                     //pinch_dot
-
-    x(4) = 0.0;                                     //roll_dotdot
-    x(5) = 0.0;                                     //pinch_dotdot 
+    x(0) = vortex::utils::math::ssa(reference_(0)); // roll
+    x(1) = reference_(1);                           // pinch
+    x(2) = 0.0;                                     // roll_dot
+    x(3) = 0.0;                                     // pinch_dot
+    x(4) = 0.0;                                     // roll_dotdot
+    x(5) = 0.0;                                     // pinch_dotdot
 
     return x;
 }
@@ -168,13 +157,11 @@ Eigen::Vector2d GripperReferenceFilterNode::fill_reference_goal(
 vortex_msgs::msg::GripperReferenceFilter GripperReferenceFilterNode::fill_reference_msg() {
     vortex_msgs::msg::GripperReferenceFilter feedback_msg;
     
-    feedback_msg.roll = vortex::utils::math::ssa(x_(0));
-    feedback_msg.pinch = x_(1);
-    
-    feedback_msg.roll_dot = x_(2);
-    feedback_msg.pinch_dot = x_(3);
-    
-    feedback_msg.roll_dotdot = x_(4);
+    feedback_msg.roll        = vortex::utils::math::ssa(x_(0));
+    feedback_msg.pinch       = x_(1);
+    feedback_msg.roll_dot    = x_(2);
+    feedback_msg.pinch_dot   = x_(3);
+    feedback_msg.roll_dotdot  = x_(4);
     feedback_msg.pinch_dotdot = x_(5);
     
     return feedback_msg;
@@ -205,17 +192,15 @@ void GripperReferenceFilterNode::publish_hold_reference() {
     if (!reference_pub_) {
         return;
     }
-    const double roll = reference_(0);
+    const double roll  = reference_(0);
     const double pinch = reference_(1);
 
     vortex_msgs::msg::GripperReferenceFilter hold_msg;
-    hold_msg.roll = vortex::utils::math::ssa(roll);
-    hold_msg.pinch = pinch;
-    
-    hold_msg.roll_dot = 0.0;
-    hold_msg.pinch_dot = 0.0;
-
-    hold_msg.roll_dotdot = 0.0;
+    hold_msg.roll         = vortex::utils::math::ssa(roll);
+    hold_msg.pinch        = pinch;
+    hold_msg.roll_dot     = 0.0;
+    hold_msg.pinch_dot    = 0.0;
+    hold_msg.roll_dotdot  = 0.0;
     hold_msg.pinch_dotdot = 0.0;
 
     reference_pub_->publish(hold_msg);
@@ -232,15 +217,13 @@ void GripperReferenceFilterNode::execute(
     spdlog::info("Executing goal");
 
     x_ = fill_reference_state();
-    
-    const vortex_msgs::msg::GripperWaypoint goal = 
+
+    const vortex_msgs::msg::GripperWaypoint goal =
         goal_handle->get_goal()->waypoint;
 
     uint8_t mode = goal.mode;
-    
-    double convergence_threshold =
-        goal_handle->get_goal()->convergence_threshold;
 
+    double convergence_threshold = goal_handle->get_goal()->convergence_threshold;
     if (convergence_threshold <= 0.0) {
         convergence_threshold = 0.1;
         spdlog::warn(
@@ -249,9 +232,8 @@ void GripperReferenceFilterNode::execute(
     }
 
     Eigen::Vector2d reference_temp = fill_reference_goal(goal);
-    
-    reference_ = apply_mode_logic(reference_temp, mode);
-    
+    Eigen::Vector2d goal_reference = apply_mode_logic(reference_temp, mode); // ← fixed: local, not reference_
+
     auto feedback = std::make_shared<
         vortex_msgs::action::GripperReferenceFilterWaypoint::Feedback>();
     auto result = std::make_shared<
@@ -280,7 +262,7 @@ void GripperReferenceFilterNode::execute(
             }
         }
 
-        Eigen::Vector6d x_dot = gripper_reference_filter_->calculate_x_dot(x_, reference_);
+        Eigen::Vector6d x_dot = gripper_reference_filter_->calculate_x_dot(x_, goal_reference); // ← fixed
         x_ += x_dot * time_step_.count() / 1000.0;
 
         vortex_msgs::msg::GripperReferenceFilter feedback_msg = fill_reference_msg();
@@ -288,10 +270,10 @@ void GripperReferenceFilterNode::execute(
         reference_pub_->publish(feedback_msg);
         goal_handle->publish_feedback(feedback);
 
-        if ((x_.head(2) - reference_.head(2)).norm() < convergence_threshold) {
+        if ((x_.head(2) - goal_reference).norm() < convergence_threshold) { // ← fixed
             result->success = true;
             goal_handle->succeed(result);
-            x_.head(2) = reference_.head(2);
+            x_.head(2) = goal_reference; // ← fixed
             vortex_msgs::msg::GripperReferenceFilter final_msg = fill_reference_msg();
             reference_pub_->publish(final_msg);
             spdlog::info("Goal reached");
