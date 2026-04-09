@@ -2,7 +2,7 @@
   ros__parameters:
     # Filter dynamics parameters
     zeta: [1.0, 1.0]    
-    omega: [0.2, 0.2]   
+    omega: [0.4, 0.4]   
 
     # Topics
     topics:

@@ -132,7 +132,7 @@ void GripperReferenceFilterNode::handle_accepted(
 Eigen::Vector6d GripperReferenceFilterNode::fill_reference_state() {
     Eigen::Vector6d x = Eigen::Vector6d::Zero();
    
-    x(0) = vortex::utils::math::ssa(reference_(0)); // roll
+    x(0) = reference_(0);                           // roll
     x(1) = reference_(1);                           // pinch
     x(2) = 0.0;                                     // roll_dot
     x(3) = 0.0;                                     // pinch_dot
@@ -157,7 +157,7 @@ Eigen::Vector2d GripperReferenceFilterNode::fill_reference_goal(
 vortex_msgs::msg::GripperReferenceFilter GripperReferenceFilterNode::fill_reference_msg() {
     vortex_msgs::msg::GripperReferenceFilter feedback_msg;
     
-    feedback_msg.roll        = vortex::utils::math::ssa(x_(0));
+    feedback_msg.roll        = x_(0); 
     feedback_msg.pinch       = x_(1);
     feedback_msg.roll_dot    = x_(2);
     feedback_msg.pinch_dot   = x_(3);
@@ -181,7 +181,7 @@ Eigen::Vector2d GripperReferenceFilterNode::apply_mode_logic(
             break;
 
         case vortex_msgs::msg::GripperWaypoint::ONLY_PINCH:
-            reference_out(0) = vortex::utils::math::ssa(reference_(0));
+            reference_out(0) = reference_(0);
             break;
     }
 
@@ -196,7 +196,7 @@ void GripperReferenceFilterNode::publish_hold_reference() {
     const double pinch = reference_(1);
 
     vortex_msgs::msg::GripperReferenceFilter hold_msg;
-    hold_msg.roll         = vortex::utils::math::ssa(roll);
+    hold_msg.roll         = roll;
     hold_msg.pinch        = pinch;
     hold_msg.roll_dot     = 0.0;
     hold_msg.pinch_dot    = 0.0;
