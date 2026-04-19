@@ -2,10 +2,7 @@
 #include <cstddef>
 #include "can_interface.hpp"
 
-GripperInterfaceDriver::GripperInterfaceDriver(short i2c_bus,
-                                               int i2c_address,
-                                               int pwm_gain,
-                                               int pwm_idle)
+GripperInterfaceDriver::GripperInterfaceDriver(int pwm_gain, int pwm_idle)
     : pwm_gain_(pwm_gain), pwm_idle_(pwm_idle) {}
 
 can_status GripperInterfaceDriver::init_can() {
@@ -13,7 +10,7 @@ can_status GripperInterfaceDriver::init_can() {
         return can_status::ERR_NOT_INITIALIZED;
     }
 
-    return (can_.set_filter(0x46D));
+    return can_.set_filter(0x46D);
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
@@ -37,8 +34,7 @@ can_status GripperInterfaceDriver::send_pwm(
 
     std::memcpy(buf.data(), pwm_values.data(), data_size);
 
-    return (can_.send(GRIPPER_PWM_CAN_ID, buf, data_size, true) !=
-            can_status::OK);
+    return can_.send(GRIPPER_PWM_CAN_ID, buf, data_size, true);
 }
 
 int GripperInterfaceDriver::stop_gripper() {
@@ -46,8 +42,7 @@ int GripperInterfaceDriver::stop_gripper() {
     constexpr std::size_t data_size = 1;
     std::uint8_t data = 0x00;
 
-    return (can_.send(GRIPPER_STOP_CAN_ID, &data, data_size, true) !=
-            can_status::OK);
+    return can_.send(GRIPPER_STOP_CAN_ID, &data, data_size, true);
 }
 
 int GripperInterfaceDriver::start_gripper() {
@@ -55,8 +50,7 @@ int GripperInterfaceDriver::start_gripper() {
     constexpr std::size_t data_size = 1;
     std::uint8_t data = 0x02;
 
-    return (can_.send(GRIPPER_START_CAN_ID, &data, data_size, true) !=
-            can_status::OK);
+    return can_.send(GRIPPER_START_CAN_ID, &data, data_size, true);
 }
 
 std::vector<double> GripperInterfaceDriver::read_encoders() {
@@ -70,9 +64,10 @@ std::vector<double> GripperInterfaceDriver::read_encoders() {
     }
 
     for (std::size_t i = 0; i < num_angles; ++i) {
-        std::array<std::uint8_t, 2> pair = {i2c_data_array[2 * i],
-                                            i2c_data_array[2 * i + 1]};
-        std::uint16_t raw_angle = i2c_to_encoder_angles(pair);
+        std::uint16_t raw_angle =
+            (encoder_data[2 * i] & 0xFF) | (encoder_data[2 * i + 1] << 8);
+
+        i2c_to_encoder_angles(pair);
         encoder_angles.push_back(raw_angle_to_radians(raw_angle));
     }
 

@@ -58,7 +58,9 @@ void GripperInterface::joy_callback(
     std_msgs::msg::Int16MultiArray pwm_msg = vec_to_msg(pwm_values);
     pwm_pub_->publish(pwm_msg);
 
-    gripper_driver_->send_pwm(pwm_values);
+    if (gripper_driver_->send_pwm(pwm_values) != can_status::OK){
+        std::cout << "error sending" << std::endl;
+    }; 
 
     if (msg->buttons[0]) {
         gripper_driver_->start_gripper();
