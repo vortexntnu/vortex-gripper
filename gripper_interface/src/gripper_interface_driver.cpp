@@ -34,10 +34,10 @@ can_status GripperInterfaceDriver::send_pwm(
 
     std::memcpy(buf.data(), pwm_values.data(), data_size);
 
-    return can_.send(GRIPPER_PWM_CAN_ID, buf, data_size, true);
+    return can_.send(GRIPPER_PWM_CAN_ID, buf.data(), data_size, true);
 }
 
-int GripperInterfaceDriver::stop_gripper() {
+can_status GripperInterfaceDriver::stop_gripper() {
     static constexpr uint32_t GRIPPER_STOP_CAN_ID = 0x469;
     constexpr std::size_t data_size = 1;
     std::uint8_t data = 0x00;
@@ -45,7 +45,7 @@ int GripperInterfaceDriver::stop_gripper() {
     return can_.send(GRIPPER_STOP_CAN_ID, &data, data_size, true);
 }
 
-int GripperInterfaceDriver::start_gripper() {
+can_status GripperInterfaceDriver::start_gripper() {
     static constexpr uint32_t GRIPPER_START_CAN_ID = 0x46A;
     constexpr std::size_t data_size = 1;
     std::uint8_t data = 0x02;
@@ -59,7 +59,7 @@ std::vector<double> GripperInterfaceDriver::read_encoders() {
     encoder_angles.reserve(num_angles);
 
     canfd_frame encoder_data{};
-    if (can_.receive(encoder_data, 1000){
+    if (can_.receive(encoder_data, 1000) != can_status::OK){
         return {};
     }
 
@@ -67,8 +67,8 @@ std::vector<double> GripperInterfaceDriver::read_encoders() {
         std::uint16_t raw_angle =
             (encoder_data[2 * i] & 0xFF) | (encoder_data[2 * i + 1] << 8);
 
-        i2c_to_encoder_angles(pair);
-        encoder_angles.push_back(raw_angle_to_radians(raw_angle));
+        // i2c_to_encoder_angles(pair);
+        // encoder_angles.push_back(raw_angle_to_radians(raw_angle));
     }
 
     return encoder_angles;

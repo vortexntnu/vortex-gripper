@@ -58,13 +58,13 @@ class GripperInterfaceDriver {
      * @brief Start gripper by sending 0x02 first byte
      * @param None
      */
-    int start_gripper();
+    can_status start_gripper();
 
     /**
      * @brief Stop gripper by sending 0x01 first byte
      * @param None
      */
-    int stop_gripper();
+    can_status stop_gripper();
 
     /**
      * @brief Reads the raw angle of each encoder
@@ -76,9 +76,6 @@ class GripperInterfaceDriver {
     std::vector<double> read_encoders();
 
    private:
-    int bus_fd_;       // File descriptor for I2C bus
-    int i2c_bus_;      // I2C bus number
-    int i2c_address_;  // I2C address of the microcontroller
     int pwm_gain_;
     int pwm_idle_;
     can_interface can_;
