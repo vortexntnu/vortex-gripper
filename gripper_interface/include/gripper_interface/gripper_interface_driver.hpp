@@ -39,7 +39,7 @@ class GripperInterfaceDriver {
      * @brief init i2c
      * @return 0 on success
      */
-    int init_can();
+    can_status init_can();
 
     /**
      * @brief Convert joystick value to PWM value.

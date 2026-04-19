@@ -14,10 +14,7 @@ can_status GripperInterfaceDriver::init_can() {
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {
-    if (bus_fd_ >= 0) {
-        send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
-        close(bus_fd_);
-    }
+    send_pwm(std::vector<std::uint16_t>(3, pwm_idle_));
 }
 
 std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
@@ -59,7 +56,7 @@ std::vector<double> GripperInterfaceDriver::read_encoders() {
     encoder_angles.reserve(num_angles);
 
     canfd_frame encoder_data{};
-    if (can_.receive(encoder_data, 1000) != can_status::OK){
+    if (can_.receive(encoder_data, 1000) != can_status::OK) {
         return {};
     }
 
