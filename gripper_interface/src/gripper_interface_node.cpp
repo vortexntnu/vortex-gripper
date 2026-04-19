@@ -13,6 +13,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     gripper_driver_ =
         std::make_unique<GripperInterfaceDriver>(pwm_gain_, pwm_idle_);
 
+    gripper_driver_.init_can();
+
     watchdog_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),
         std::bind(&GripperInterface::encoder_angles_callback, this));
