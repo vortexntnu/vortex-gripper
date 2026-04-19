@@ -15,9 +15,9 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
 
     gripper_driver_->init_can();
 
-    watchdog_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(500),
-        std::bind(&GripperInterface::encoder_angles_callback, this));
+    // watchdog_timer_ = this->create_wall_timer(
+    //     std::chrono::milliseconds(500),
+    //     std::bind(&GripperInterface::encoder_angles_callback, this));
 
     last_msg_time_ = this->now();
     spdlog::info("Gripper interface node started");
