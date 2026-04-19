@@ -6,7 +6,7 @@ GripperInterfaceDriver::GripperInterfaceDriver(int pwm_gain, int pwm_idle)
     : pwm_gain_(pwm_gain), pwm_idle_(pwm_idle) {}
 
 can_status GripperInterfaceDriver::init_can() {
-    if (can_.init("can0")) {
+    if (can_.init("can0") != can_status::OK) {
         return can_status::ERR_NOT_INITIALIZED;
     }
 
@@ -60,13 +60,13 @@ std::vector<double> GripperInterfaceDriver::read_encoders() {
         return {};
     }
 
-    for (std::size_t i = 0; i < num_angles; ++i) {
-        std::uint16_t raw_angle =
-            (encoder_data[2 * i] & 0xFF) | (encoder_data[2 * i + 1] << 8);
+    // for (std::size_t i = 0; i < num_angles; ++i) {
+        // std::uint16_t raw_angle =
+        //     (encoder_data[2 * i] & 0xFF) | (encoder_data[2 * i + 1] << 8);
 
         // i2c_to_encoder_angles(pair);
         // encoder_angles.push_back(raw_angle_to_radians(raw_angle));
-    }
+    // }
 
     return encoder_angles;
 }
