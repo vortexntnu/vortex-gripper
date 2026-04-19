@@ -17,6 +17,7 @@
 #include <ranges>
 #include <string>
 #include <vector>
+#include "can_interface.hpp"
 
 /**
  * @brief Class for interfacing with the gripper.

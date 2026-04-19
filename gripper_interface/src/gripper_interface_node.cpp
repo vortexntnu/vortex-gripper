@@ -10,8 +10,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
         joint_state_topic_, 10);
-    gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-        i2c_bus_, i2c_address_, pwm_gain_, pwm_idle_);
+    gripper_driver_ =
+        std::make_unique<GripperInterfaceDriver>(pwm_gain_, pwm_idle_);
 
     watchdog_timer_ = this->create_wall_timer(
         std::chrono::milliseconds(500),
@@ -58,9 +58,9 @@ void GripperInterface::joy_callback(
     std_msgs::msg::Int16MultiArray pwm_msg = vec_to_msg(pwm_values);
     pwm_pub_->publish(pwm_msg);
 
-    if (gripper_driver_->send_pwm(pwm_values) != can_status::OK){
+    if (gripper_driver_->send_pwm(pwm_values) != can_status::OK) {
         std::cout << "error sending" << std::endl;
-    }; 
+    };
 
     if (msg->buttons[0]) {
         gripper_driver_->start_gripper();
