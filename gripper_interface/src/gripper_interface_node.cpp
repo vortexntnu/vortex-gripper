@@ -44,17 +44,17 @@ void GripperInterface::extract_parameters() {
 
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
-    const auto now = this->get_clock()->now();
-
-    // first call
-    if (last_time_.nanoseconds() == 0) {
-        last_time_ = now;
-    }
-
-    if ((now - last_time_).seconds() < min_period_) {
-        return;
-    }
-    last_time_ = now;
+    // const auto now = this->get_clock()->now();
+    //
+    // // first call
+    // if (last_time_.nanoseconds() == 0) {
+    //     last_time_ = now;
+    // }
+    //
+    // if ((now - last_time_).seconds() < min_period_) {
+    //     return;
+    // }
+    // last_time_ = now;
 
     std::vector<std::uint16_t> pwm_values;
     double shoulder_value = msg->axes[1];
