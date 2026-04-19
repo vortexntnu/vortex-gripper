@@ -6,7 +6,7 @@
       joint_state: "/joint_state_gripper"
 
     pwm:
-      gain: 200 # value range: pwm_idle +/- pwm_gain
+      gain: 800 # value range: pwm_idle +/- pwm_gain
       idle: 1500
 
     i2c:
