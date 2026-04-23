@@ -2,6 +2,7 @@
 #define GRIPPER_INTERFACE_DRIVER_HPP
 
 #include <fcntl.h>
+#include <linux/can.h>
 #include <linux/i2c-dev.h>
 #include <spdlog/spdlog.h>
 #include <sys/ioctl.h>
@@ -73,7 +74,10 @@ class GripperInterfaceDriver {
      * order
      */
 
-    std::vector<double> read_encoders();
+    std::vector<double> parse_encoders(const struct canfd_frame& frame);
+
+
+    void start_read_encoders(std::function<void(const struct canfd_frame&, can_status)> callback);
 
    private:
     int pwm_gain_;

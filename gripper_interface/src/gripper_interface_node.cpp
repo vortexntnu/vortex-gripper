@@ -1,4 +1,5 @@
 #include "gripper_interface/gripper_interface_node.hpp"
+#include "can_interface.hpp"
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
@@ -14,6 +15,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         std::make_unique<GripperInterfaceDriver>(pwm_gain_, pwm_idle_);
 
     gripper_driver_->init_can();
+
+    gripper_driver_->start_read_encoders(encoder_angles_callback);
 
     // watchdog_timer_ = this->create_wall_timer(
     //     std::chrono::milliseconds(500),
@@ -83,8 +86,12 @@ void GripperInterface::joy_callback(
     }
 }
 
-void GripperInterface::encoder_angles_callback() {
-    std::vector<double> angles = gripper_driver_->read_encoders();
+void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame, can_status status) {
+    if (status != can_status::OK){
+        return;
+    }
+
+    std::vector<double> angles = gripper_driver_->parse_encoders(frame);
     if (angles.empty()) {
         return;
     }

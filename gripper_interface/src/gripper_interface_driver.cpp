@@ -50,23 +50,21 @@ can_status GripperInterfaceDriver::start_gripper() {
     return can_.send(GRIPPER_START_CAN_ID, &data, data_size, true);
 }
 
-std::vector<double> GripperInterfaceDriver::read_encoders() {
+void GripperInterfaceDriver::start_read_encoders(std::function<void(const struct canfd_frame&, can_status)> callback){
+    can_.start_async_receive(callback);
+}
+
+std::vector<double> GripperInterfaceDriver::parse_encoders(const struct canfd_frame& frame) {
     constexpr std::size_t num_angles = 2;
     std::vector<double> encoder_angles;
     encoder_angles.reserve(num_angles);
 
-    canfd_frame encoder_data{};
-    if (can_.receive(encoder_data, 1000) != can_status::OK) {
-        return {};
+    for (std::size_t i = 0; i < num_angles; ++i) {
+        std::uint16_t raw_angle =
+            (frame.data[2 * i] & 0xFF) | (frame.data[2 * i + 1] << 8);
+
+        encoder_angles.push_back(raw_angle_to_radians(raw_angle));
     }
-
-    // for (std::size_t i = 0; i < num_angles; ++i) {
-        // std::uint16_t raw_angle =
-        //     (encoder_data[2 * i] & 0xFF) | (encoder_data[2 * i + 1] << 8);
-
-        // i2c_to_encoder_angles(pair);
-        // encoder_angles.push_back(raw_angle_to_radians(raw_angle));
-    // }
 
     return encoder_angles;
 }
