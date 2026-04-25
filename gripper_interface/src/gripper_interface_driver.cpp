@@ -24,7 +24,7 @@ std::uint16_t GripperInterfaceDriver::joy_to_pwm(const double joy_value) {
 can_status GripperInterfaceDriver::send_pwm(
     const std::vector<std::uint16_t>& pwm_values) {
     static constexpr uint32_t GRIPPER_PWM_CAN_ID = 0x46B;
-    constexpr std::size_t num_servos = 2;
+    constexpr std::size_t num_servos = 3;
     constexpr std::size_t data_size =
         num_servos * 2;  // 3 thrusters * (1xMSB + 1xLSB)
     std::array<std::uint8_t, data_size> buf;
