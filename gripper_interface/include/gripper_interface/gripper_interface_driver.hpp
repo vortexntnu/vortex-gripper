@@ -68,16 +68,16 @@ class GripperInterfaceDriver {
     can_status stop_gripper();
 
     /**
-     * @brief Reads the raw angle of each encoder
-     * @param None
-     * @Return vector containing the angles of the shoulder, wrist and grip in
-     * order
+     * @brief Parses and converts encoder data from a CAN FD frame.
+     *
+     * @param frame CAN FD frame containing raw encoder data.
+     * @return Vector containing the parsed encoder angles in the following
+     * order: (shoulder), wrist, and grip.
      */
-
     std::vector<double> parse_encoders(const struct canfd_frame& frame);
 
-
-    void start_read_encoders(std::function<void(const struct canfd_frame&, can_status)> callback);
+    void start_read_encoders(
+        std::function<void(const struct canfd_frame&, can_status)> callback);
 
    private:
     int pwm_gain_;
