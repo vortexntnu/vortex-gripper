@@ -1,16 +1,16 @@
 #include "gripper_interface/gripper_interface_driver.hpp"
-#include <cstddef>
 #include "can_interface.hpp"
 
 GripperInterfaceDriver::GripperInterfaceDriver(int pwm_gain, int pwm_idle)
     : pwm_gain_(pwm_gain), pwm_idle_(pwm_idle) {}
 
 can_status GripperInterfaceDriver::init_can() {
+    constexpr uint32_t ENCODER_ANGLES_CAN_ID = 0x46D;
     if (can_.init("can0") != can_status::OK) {
         return can_status::ERR_NOT_INITIALIZED;
     }
 
-    return can_.set_filter(0x46D);
+    return can_.set_filter(ENCODER_ANGLES_CAN_ID);
 }
 
 GripperInterfaceDriver::~GripperInterfaceDriver() {

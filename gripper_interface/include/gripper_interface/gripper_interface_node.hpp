@@ -42,13 +42,8 @@ class GripperInterface : public rclcpp::Node {
     std::string joy_topic_;
     std::string pwm_topic_;
     std::string joint_state_topic_;
-    int i2c_bus_;
-    int i2c_address_;
     int pwm_gain_;
     int pwm_idle_;
-
-    rclcpp::Time last_time_{0, 0, RCL_ROS_TIME};
-    double min_period_ = 0.05;  // 20 Hz
 
     std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
 

@@ -29,15 +29,13 @@ class GripperInterfaceDriver {
 
     /**
      * @brief Constructor for the GripperInterfaceDriver class.
-     * @param i2c_bus The I2C bus number.
-     * @param i2c_address The I2C address of the microcontroller.
      * @param pwm_gain The gain for converting joystick values to PWM values.
      * @param pwm_idle The idle PWM value.
      */
     GripperInterfaceDriver(int pwm_gain, int pwm_idle);
 
     /**
-     * @brief init i2c
+     * @brief init can
      * @return 0 on success
      */
     can_status init_can();

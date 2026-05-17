@@ -18,7 +18,6 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
 
     gripper_driver_->start_read_encoders(encoder_angles_callback);
 
-    last_msg_time_ = this->now();
     spdlog::info("Gripper interface node started");
 }
 
@@ -28,8 +27,6 @@ void GripperInterface::extract_parameters() {
     this->declare_parameter<std::string>("topics.joint_state");
     this->declare_parameter<int>("pwm.gain");
     this->declare_parameter<int>("pwm.idle");
-    this->declare_parameter<int>("i2c.bus");
-    this->declare_parameter<int>("i2c.address");
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
@@ -37,8 +34,6 @@ void GripperInterface::extract_parameters() {
         this->get_parameter("topics.joint_state").as_string();
     this->pwm_gain_ = this->get_parameter("pwm.gain").as_int();
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
-    this->i2c_bus_ = this->get_parameter("i2c.bus").as_int();
-    this->i2c_address_ = this->get_parameter("i2c.address").as_int();
 }
 
 void GripperInterface::joy_callback(

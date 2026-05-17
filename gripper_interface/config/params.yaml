@@ -4,11 +4,6 @@
       joy: "/joy"
       pwm: "/gripper_pwm"
       joint_state: "/joint_state_gripper"
-
     pwm:
       gain: 800 # value range: pwm_idle +/- pwm_gain
       idle: 1500
-
-    i2c:
-      bus: 7
-      address: 0x31
