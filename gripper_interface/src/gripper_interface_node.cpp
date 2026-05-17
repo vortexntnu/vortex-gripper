@@ -38,7 +38,6 @@ void GripperInterface::extract_parameters() {
 
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
-
     std::vector<std::uint16_t> pwm_values;
     double shoulder_value = msg->axes[1];
     double wrist_value = msg->axes[0];
@@ -66,8 +65,9 @@ void GripperInterface::joy_callback(
     }
 }
 
-void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame, can_status status) {
-    if (status != can_status::OK){
+void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame,
+                                               can_status status) {
+    if (status != can_status::OK) {
         return;
     }
 
@@ -79,7 +79,7 @@ void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame, 
     auto joint_state_msg = sensor_msgs::msg::JointState();
 
     joint_state_msg.header.stamp = this->now();
-    joint_state_msg.name = {"shoulder", "wrist", "grip"};
+    joint_state_msg.name = {"wrist", "grip"};
     joint_state_msg.position = angles;
 
     joint_state_pub_->publish(joint_state_msg);
