@@ -9,6 +9,7 @@
 #include <std_msgs/msg/int16_multi_array.hpp>
 #include <string>
 #include <vector>
+#include <limits>
 #include "gripper_interface/gripper_interface_driver.hpp"
 
 class GripperInterface : public rclcpp::Node {

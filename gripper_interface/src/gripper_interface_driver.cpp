@@ -56,12 +56,23 @@ void GripperInterfaceDriver::start_read_encoders(std::function<void(const struct
 
 std::vector<double> GripperInterfaceDriver::parse_encoders(const struct canfd_frame& frame) {
     constexpr std::size_t num_angles = 2;
+    constexpr std::uint16_t invalid_reading = 0xFFFF;
+
     std::vector<double> encoder_angles;
     encoder_angles.reserve(num_angles);
 
     for (std::size_t i = 0; i < num_angles; ++i) {
-        std::uint16_t raw_angle =
-            (frame.data[2 * i] & 0xFF) | (frame.data[2 * i + 1] << 8);
+        const std::uint8_t lsb = frame.data[2 * i];
+        const std::uint8_t msb = frame.data[2 * i + 1];
+
+        const std::uint16_t raw_angle =
+            static_cast<std::uint16_t>(lsb) |
+            (static_cast<std::uint16_t>(msb) << 8);
+
+        if (raw_angle == invalid_reading) {
+            encoder_angles.push_back(std::numeric_limits<double>::quiet_NaN());
+            continue;
+        }
 
         encoder_angles.push_back(raw_angle_to_radians(raw_angle));
     }
