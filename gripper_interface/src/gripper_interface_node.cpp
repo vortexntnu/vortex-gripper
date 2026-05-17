@@ -18,10 +18,6 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
 
     gripper_driver_->start_read_encoders(encoder_angles_callback);
 
-    // watchdog_timer_ = this->create_wall_timer(
-    //     std::chrono::milliseconds(500),
-    //     std::bind(&GripperInterface::encoder_angles_callback, this));
-
     last_msg_time_ = this->now();
     spdlog::info("Gripper interface node started");
 }
@@ -47,17 +43,6 @@ void GripperInterface::extract_parameters() {
 
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
-    // const auto now = this->get_clock()->now();
-    //
-    // // first call
-    // if (last_time_.nanoseconds() == 0) {
-    //     last_time_ = now;
-    // }
-    //
-    // if ((now - last_time_).seconds() < min_period_) {
-    //     return;
-    // }
-    // last_time_ = now;
 
     std::vector<std::uint16_t> pwm_values;
     double shoulder_value = msg->axes[1];
