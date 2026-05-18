@@ -9,9 +9,12 @@ types::Vector2d GripperController::calculate_velocity(
     const types::GripperState& measured_state,
     const types::GripperState& reference_state) {
 
-    types::Vector2d position_error;
-    position_error(0) = reference_state.roll  - measured_state.roll;
-    position_error(1) = reference_state.pinch - measured_state.pinch;
+    const types::Vector2d position_error = [&] {
+        types::Vector2d error;
+        error(0) = reference_state.roll  - measured_state.roll;
+        error(1) = reference_state.pinch - measured_state.pinch;
+        return error;
+    }();
 
     types::Vector2d velocity_command = Kp_ * position_error;
 
