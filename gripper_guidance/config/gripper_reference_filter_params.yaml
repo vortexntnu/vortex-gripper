@@ -6,9 +6,9 @@
 
     # Topics
     topics:
-      guidance_gripper: "vortex/gripper/guidance"
-      gripper_state: "vortex/gripper/state"
+      guidance_gripper: "nautilus/gripper/guidance"
+      gripper_state: "nautilus/gripper/state"
       
     # Action servers
     action_servers:
-      gripper_reference_filter: "vortex/gripper/reference_filter"
+      gripper_reference_filter: "nautilus/gripper/reference_filter"

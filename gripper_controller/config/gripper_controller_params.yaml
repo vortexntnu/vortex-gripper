@@ -12,8 +12,8 @@
     # Topics
     topics:
       # Input: smoothed reference from the gripper reference filter
-      reference: "vortex/gripper/guidance"
+      reference: "nautilus/gripper/guidance"
       # Input: raw measured gripper state from the interface node
-      state:     "vortex/gripper/state"
+      state:     "nautilus/gripper/state"
       # Output: velocity command to the interface node
-      control:   "vortex/gripper/control"
+      control:   "nautilus/gripper/control"

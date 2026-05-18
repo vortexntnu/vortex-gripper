@@ -82,6 +82,9 @@ class GripperReferenceFilterNode : public rclcpp::Node {
     // @brief Publish a hold reference message at the current gripper state
     void publish_hold_reference();
 
+    // @brief Publish hold reference on a timer when no goal is active
+    void publish_hold_timer();
+
     // @brief Fill the reference filter output message from the current state
     // @return The gripper reference filter message
     vortex_msgs::msg::GripperReferenceFilter fill_reference_msg();
@@ -120,6 +123,10 @@ class GripperReferenceFilterNode : public rclcpp::Node {
         goal_handle_;
 
     rclcpp::CallbackGroup::SharedPtr cb_group_;
+
+    rclcpp::TimerBase::SharedPtr hold_timer_;
+    vortex_msgs::msg::GripperReferenceFilter hold_reference_msg_;
+    bool hold_active_{false};
 };
 
 }  // namespace vortex::guidance
