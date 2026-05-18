@@ -1,7 +1,7 @@
 #include "gripper_controller/gripper_controller_ros.hpp"
 
 #include <chrono>
-#include <functional>
+#include <memory>
 #include <mutex>
 #include <spdlog/spdlog.h>
 #include "gripper_controller/gripper_controller_translator.hpp"
@@ -19,10 +19,6 @@ const auto start_message = R"(
 
 namespace vortex::controller {
 
-// ---------------------------------------------------------------------------
-// CONSTRUCTOR
-// ---------------------------------------------------------------------------
-
 GripperControllerNode::GripperControllerNode(const rclcpp::NodeOptions & options)
 : Node("gripper_controller_node", options) {
   time_step_ = std::chrono::milliseconds(10);
@@ -34,10 +30,6 @@ GripperControllerNode::GripperControllerNode(const rclcpp::NodeOptions & options
   spdlog::info(start_message);
 }
 
-// ---------------------------------------------------------------------------
-// SETUP
-// ---------------------------------------------------------------------------
-
 void GripperControllerNode::set_controller_params() {
   const int time_step_ms =
     this->declare_parameter<int>("time_step_ms", 10);
@@ -48,9 +40,12 @@ void GripperControllerNode::set_controller_params() {
   const double kp_pinch =
     this->declare_parameter<double>("kp.pinch", 1.0);
 
-  types::Matrix2d proportional_gain_matrix = types::Matrix2d::Zero();
-  proportional_gain_matrix(0, 0) = kp_roll;
-  proportional_gain_matrix(1, 1) = kp_pinch;
+  const types::Matrix2d proportional_gain_matrix = [&] {
+    types::Matrix2d matrix = types::Matrix2d::Zero();
+    matrix(0, 0) = kp_roll;
+    matrix(1, 1) = kp_pinch;
+    return matrix;
+  }();
 
   controller_.set_kp(proportional_gain_matrix);
   controller_.set_time_step(static_cast<double>(time_step_ms) / 1000.0);
@@ -67,19 +62,21 @@ void GripperControllerNode::set_subscribers_and_publisher() {
   const std::string control_topic =
     this->declare_parameter<std::string>("topics.control");
 
-  auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
+  const auto qos_sensor_data = vortex::utils::qos_profiles::sensor_data_profile(1);
 
   reference_sub_ =
     this->create_subscription<vortex_msgs::msg::GripperReferenceFilter>(
       reference_topic, qos_sensor_data,
-      std::bind(&GripperControllerNode::reference_callback, this,
-        std::placeholders::_1));
+      [this](const vortex_msgs::msg::GripperReferenceFilter::SharedPtr msg) {
+        reference_callback(msg);
+      });
 
   state_sub_ =
     this->create_subscription<vortex_msgs::msg::GripperState>(
       state_topic, qos_sensor_data,
-      std::bind(&GripperControllerNode::state_callback, this,
-        std::placeholders::_1));
+      [this](const vortex_msgs::msg::GripperState::SharedPtr msg) {
+        state_callback(msg);
+      });
 
   control_pub_ =
     this->create_publisher<vortex_msgs::msg::GripperStateVelocityCommand>(
@@ -89,12 +86,8 @@ void GripperControllerNode::set_subscribers_and_publisher() {
   // initialised before the first publish_control() fires.
   control_timer_ = this->create_wall_timer(
     time_step_,
-    std::bind(&GripperControllerNode::publish_control, this));
+    [this]() { publish_control(); });
 }
-
-// ---------------------------------------------------------------------------
-// CALLBACKS
-// ---------------------------------------------------------------------------
 
 void GripperControllerNode::reference_callback(
   const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_msg) {
@@ -110,31 +103,28 @@ void GripperControllerNode::state_callback(
   pinch_measured_ = state_msg->pinch;
 }
 
-// ---------------------------------------------------------------------------
-// CONTROL LOOP
-// ---------------------------------------------------------------------------
-
 void GripperControllerNode::publish_control() {
-  types::GripperState measured_state;
-  types::GripperState reference_state;
-
-  {
+  const auto [measured_state, reference_state] = [this] {
     std::lock_guard<std::mutex> lock(state_mutex_);
-    measured_state.roll = roll_measured_;
-    measured_state.pinch = pinch_measured_;
-    reference_state.roll = roll_ref_;
-    reference_state.pinch = pinch_ref_;
-  }
+    types::GripperState measured;
+    types::GripperState reference;
+    measured.roll = roll_measured_;
+    measured.pinch = pinch_measured_;
+    reference.roll = roll_ref_;
+    reference.pinch = pinch_ref_;
+    return std::pair{measured, reference};
+  }();
 
   const types::Vector2d velocity_command =
     controller_.calculate_velocity(measured_state, reference_state);
 
-  vortex_msgs::msg::GripperStateVelocityCommand velocity_command_msg =
-    gripper_controller::translator::velocity_command_to_gripper_velocity_command_msg(
-      velocity_command);
-  velocity_command_msg.header.stamp = this->now();
+  auto velocity_command_msg =
+    std::make_unique<vortex_msgs::msg::GripperStateVelocityCommand>(
+      gripper_controller::translator::velocity_command_to_gripper_velocity_command_msg(
+        velocity_command));
+  velocity_command_msg->header.stamp = this->now();
 
-  control_pub_->publish(velocity_command_msg);
+  control_pub_->publish(std::move(velocity_command_msg));
 }
 
   RCLCPP_COMPONENTS_REGISTER_NODE(GripperControllerNode)
