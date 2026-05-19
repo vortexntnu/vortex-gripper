@@ -1,23 +1,22 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>gripper_interface</name>
-  <version>0.0.1</version>
-  <description>CAN-bus interface node between ROS 2 and the gripper MCU firmware.</description>
-  <maintainer email="vortex@stud.ntnu.no">Vortex NTNU</maintainer>
+  <name>gripper_reference_filter</name>
+  <version>0.0.0</version>
+  <description>Reference filter for the gripper</description>
+  <maintainer email="patricsh@stud.ntnu.no">patricsh</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>rclcpp_components</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
   <depend>vortex_msgs</depend>
+  <depend>vortex_utils</depend>
   <depend>vortex_utils_ros</depend>
-  <depend>spdlog</depend>
-  <depend>fmt</depend>
-
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
+  <depend>nav_msgs</depend>
+  <depend>eigen</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
