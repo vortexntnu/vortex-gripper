@@ -3,22 +3,42 @@
 namespace vortex::guidance {
 
 GripperReferenceFilter::GripperReferenceFilter(const GripperReferenceFilterParams& params) {
-   Ad_.setZero(); 
-   Bd_.setZero();
-   calculate_Ad(params.omega, params.zeta);
-   calculate_Bd(params.omega);
+    Ad_.setZero();
+    Bd_.setZero();
+    filter_state_.setZero();
+    calculate_Ad(params.omega, params.zeta);
+    calculate_Bd(params.omega);
 }
 
-Eigen::Vector6d GripperReferenceFilter::calculate_x_dot(const Eigen::Vector6d& x,
-                                                  const Eigen::Vector2d& r) {
-    const Eigen::Vector6d x_dot = Ad_ * x + Bd_ * r;
-
-    return x_dot;
+void GripperReferenceFilter::reset(const Eigen::Vector2d& initial_reference) {
+    filter_state_.setZero();
+    filter_state_(0) = initial_reference(0);
+    filter_state_(1) = initial_reference(1);
 }
 
+void GripperReferenceFilter::step(const Eigen::Vector2d& goal_reference,
+                                  double time_step_seconds) {
+    const Eigen::Vector6d state_derivative =
+        calculate_state_derivative(filter_state_, goal_reference);
+    filter_state_ += state_derivative * time_step_seconds;
+}
+
+void GripperReferenceFilter::snap_to(const Eigen::Vector2d& goal_reference) {
+    filter_state_.head(2) = goal_reference;
+}
+
+Eigen::Vector2d GripperReferenceFilter::reference_output() const {
+    return filter_state_.head(2);
+}
+
+Eigen::Vector6d GripperReferenceFilter::calculate_state_derivative(
+    const Eigen::Vector6d& state, const Eigen::Vector2d& reference) const {
+    const Eigen::Vector6d state_derivative = Ad_ * state + Bd_ * reference;
+    return state_derivative;
+}
 
 void GripperReferenceFilter::calculate_Ad(const Eigen::Vector2d& omega,
-                                   const Eigen::Vector2d& zeta) {
+                                          const Eigen::Vector2d& zeta) {
     const Eigen::Matrix2d omega_diag = omega.asDiagonal();
     const Eigen::Matrix2d zeta_diag = zeta.asDiagonal();
     const Eigen::Matrix2d omega_diag_squared = omega_diag * omega_diag;
