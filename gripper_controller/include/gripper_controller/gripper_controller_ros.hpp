@@ -49,7 +49,7 @@ private:
     control_pub_;
 
   rclcpp::TimerBase::SharedPtr control_timer_;
-  std::chrono::milliseconds time_step_;
+  std::chrono::milliseconds time_step_ms_;
 
   std::mutex state_mutex_;
 

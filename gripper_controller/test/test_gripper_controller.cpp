@@ -12,7 +12,7 @@ class GripperControllerTest : public ::testing::Test {
     void SetUp() override {
         types::Matrix2d identity_gain = types::Matrix2d::Identity();
         controller_.set_kp(identity_gain);
-        controller_.set_time_step(0.01);
+        controller_.set_time_step_ms(10.0);
     }
 
     // @brief Helper: run calculate_velocity with explicit scalar inputs.

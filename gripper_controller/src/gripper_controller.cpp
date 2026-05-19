@@ -3,7 +3,7 @@
 #include <algorithm>
 
 GripperController::GripperController()
-    : Kp_(types::Matrix2d::Identity()), timestep_(0.01) {}
+    : Kp_(types::Matrix2d::Identity()), time_step_ms_(10.0) {}
 
 types::Vector2d GripperController::calculate_velocity(
     const types::GripperState& measured_state,
@@ -32,6 +32,6 @@ void GripperController::set_kp(const types::Matrix2d& proportional_gain_matrix) 
     Kp_ = proportional_gain_matrix;
 }
 
-void GripperController::set_time_step(double timestep) {
-    timestep_ = timestep;
+void GripperController::set_time_step_ms(double time_step_ms) {
+    time_step_ms_ = time_step_ms;
 }

@@ -21,8 +21,6 @@ namespace vortex::controller {
 
 GripperControllerNode::GripperControllerNode(const rclcpp::NodeOptions & options)
 : Node("gripper_controller_node", options) {
-  time_step_ = std::chrono::milliseconds(10);
-
   set_controller_params();
 
   set_subscribers_and_publisher();
@@ -31,9 +29,9 @@ GripperControllerNode::GripperControllerNode(const rclcpp::NodeOptions & options
 }
 
 void GripperControllerNode::set_controller_params() {
-  const int time_step_ms =
+  const int time_step_ms_param =
     this->declare_parameter<int>("time_step_ms", 10);
-  time_step_ = std::chrono::milliseconds(time_step_ms);
+  time_step_ms_ = std::chrono::milliseconds(time_step_ms_param);
 
   const double kp_roll =
     this->declare_parameter<double>("kp.roll", 1.0);
@@ -48,10 +46,10 @@ void GripperControllerNode::set_controller_params() {
   }();
 
   controller_.set_kp(proportional_gain_matrix);
-  controller_.set_time_step(static_cast<double>(time_step_ms) / 1000.0);
+  controller_.set_time_step_ms(static_cast<double>(time_step_ms_param));
 
   spdlog::info("GripperController: kp_roll={:.3f} kp_pinch={:.3f} dt={}ms",
-    kp_roll, kp_pinch, time_step_ms);
+    kp_roll, kp_pinch, time_step_ms_param);
 }
 
 void GripperControllerNode::set_subscribers_and_publisher() {
@@ -85,7 +83,7 @@ void GripperControllerNode::set_subscribers_and_publisher() {
   // Timer is created last so that controller_ and the publisher are fully
   // initialised before the first publish_control() fires.
   control_timer_ = this->create_wall_timer(
-    time_step_,
+    time_step_ms_,
     [this]() { publish_control(); });
 }
 
