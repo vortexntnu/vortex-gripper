@@ -24,12 +24,17 @@ class GripperReferenceFilterNode : public rclcpp::Node {
     ~GripperReferenceFilterNode();
 
    private:
+    // @brief Declare ROS parameters and create the subscription/publisher pair.
     void set_subscribers_and_publisher();
 
+    // @brief Declare ROS parameters and create the action server.
     void set_action_server();
 
+    // @brief Declare ROS parameters and construct the reference filter instance.
     void set_refererence_filter();
 
+    // @brief Latch the measured gripper state for later use as the initial
+    //        reference seed and for mode-masking the goal.
     void reference_callback(
         const vortex_msgs::msg::GripperState::SharedPtr state_msg);
 
@@ -52,9 +57,17 @@ class GripperReferenceFilterNode : public rclcpp::Node {
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<
             vortex_msgs::action::GripperReferenceFilterWaypoint>> goal_handle);
 
-    void publish_hold_reference();
+    // @brief Latch the filter's current 2D output as the held reference and
+    //        publish it once. Called whenever a goal ends so that the next
+    //        republish_held_reference_tick has a non-default value to send.
+    void latch_current_state_as_held_reference();
 
-    void publish_hold_timer();
+    // @brief Periodically republish the held reference when no goal is active.
+    //        This keeps downstream consumers receiving the last committed
+    //        reference rather than a default-zero message, which prevented
+    //        the convergence check from spuriously succeeding on a new
+    //        zero-valued goal.
+    void republish_held_reference_tick();
 
     rclcpp_action::Server<
         vortex_msgs::action::GripperReferenceFilterWaypoint>::SharedPtr
@@ -68,17 +81,15 @@ class GripperReferenceFilterNode : public rclcpp::Node {
     rclcpp::Subscription<vortex_msgs::msg::GripperState>::SharedPtr
         reference_sub_;
 
-    std::chrono::milliseconds time_step_{};
+    std::chrono::milliseconds time_step_ms_{};
 
-    Eigen::Vector6d filter_state_;
-
-    Eigen::Vector2d reference_;
+    Eigen::Vector2d measured_reference_{Eigen::Vector2d::Zero()};
 
     std::mutex mutex_;
 
-    rclcpp::TimerBase::SharedPtr hold_timer_;
-    vortex_msgs::msg::GripperReferenceFilter hold_reference_msg_;
-    bool hold_active_{false};
+    rclcpp::TimerBase::SharedPtr held_reference_republish_timer_;
+    vortex_msgs::msg::GripperReferenceFilter last_published_reference_;
+    bool holding_reference_{false};
 
     std::atomic<bool> preempted_{false};
     std::mutex execute_mutex_;
