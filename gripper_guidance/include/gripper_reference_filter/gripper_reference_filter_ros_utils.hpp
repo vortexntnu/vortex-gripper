@@ -66,19 +66,19 @@ inline Eigen::Vector2d compute_convergence_error(
     const Eigen::Vector2d& current_reference,
     const Eigen::Vector2d& goal_reference,
     uint8_t mode) {
-    Eigen::Vector2d error = current_reference - goal_reference;
+    Eigen::Vector2d convergence_error = current_reference - goal_reference;
     switch (mode) {
         case vortex_msgs::msg::GripperWaypoint::ONLY_ROLL:
-            error(1) = 0.0;
+            convergence_error(1) = 0.0;
             break;
         case vortex_msgs::msg::GripperWaypoint::ONLY_PINCH:
-            error(0) = 0.0;
+            convergence_error(0) = 0.0;
             break;
         case vortex_msgs::msg::GripperWaypoint::ROLL_AND_PINCH:
         default:
             break;
     }
-    return error;
+    return convergence_error;
 }
 
 }  // namespace vortex::guidance

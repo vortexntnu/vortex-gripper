@@ -39,10 +39,10 @@ void GripperControllerNode::set_controller_params() {
     this->declare_parameter<double>("kp.pinch", 1.0);
 
   const types::Matrix2d proportional_gain_matrix = [&] {
-    types::Matrix2d matrix = types::Matrix2d::Zero();
-    matrix(0, 0) = kp_roll;
-    matrix(1, 1) = kp_pinch;
-    return matrix;
+    types::Matrix2d gain_matrix = types::Matrix2d::Zero();
+    gain_matrix(0, 0) = kp_roll;
+    gain_matrix(1, 1) = kp_pinch;
+    return gain_matrix;
   }();
 
   controller_.set_kp(proportional_gain_matrix);
@@ -65,15 +65,15 @@ void GripperControllerNode::set_subscribers_and_publisher() {
   reference_sub_ =
     this->create_subscription<vortex_msgs::msg::GripperReferenceFilter>(
       reference_topic, qos_sensor_data,
-      [this](const vortex_msgs::msg::GripperReferenceFilter::SharedPtr msg) {
-        reference_callback(msg);
+      [this](const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_filter_msg) {
+        reference_callback(reference_filter_msg);
       });
 
   state_sub_ =
     this->create_subscription<vortex_msgs::msg::GripperState>(
       state_topic, qos_sensor_data,
-      [this](const vortex_msgs::msg::GripperState::SharedPtr msg) {
-        state_callback(msg);
+      [this](const vortex_msgs::msg::GripperState::SharedPtr gripper_state_msg) {
+        state_callback(gripper_state_msg);
       });
 
   control_pub_ =
@@ -88,29 +88,29 @@ void GripperControllerNode::set_subscribers_and_publisher() {
 }
 
 void GripperControllerNode::reference_callback(
-  const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_msg) {
+  const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_filter_msg) {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  roll_ref_ = reference_msg->roll;
-  pinch_ref_ = reference_msg->pinch;
+  roll_ref_ = reference_filter_msg->roll;
+  pinch_ref_ = reference_filter_msg->pinch;
 }
 
 void GripperControllerNode::state_callback(
-  const vortex_msgs::msg::GripperState::SharedPtr state_msg) {
+  const vortex_msgs::msg::GripperState::SharedPtr gripper_state_msg) {
   std::lock_guard<std::mutex> lock(state_mutex_);
-  roll_measured_ = state_msg->roll;
-  pinch_measured_ = state_msg->pinch;
+  roll_measured_ = gripper_state_msg->roll;
+  pinch_measured_ = gripper_state_msg->pinch;
 }
 
 void GripperControllerNode::publish_control() {
   const auto [measured_state, reference_state] = [this] {
     std::lock_guard<std::mutex> lock(state_mutex_);
-    types::GripperState measured;
-    types::GripperState reference;
-    measured.roll = roll_measured_;
-    measured.pinch = pinch_measured_;
-    reference.roll = roll_ref_;
-    reference.pinch = pinch_ref_;
-    return std::pair{measured, reference};
+    types::GripperState measured_gripper_state;
+    types::GripperState reference_gripper_state;
+    measured_gripper_state.roll = roll_measured_;
+    measured_gripper_state.pinch = pinch_measured_;
+    reference_gripper_state.roll = roll_ref_;
+    reference_gripper_state.pinch = pinch_ref_;
+    return std::pair{measured_gripper_state, reference_gripper_state};
   }();
 
   const types::Vector2d velocity_command =

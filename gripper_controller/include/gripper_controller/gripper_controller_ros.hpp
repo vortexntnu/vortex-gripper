@@ -28,10 +28,10 @@ public:
 
 private:
   void reference_callback(
-    const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_msg);
+    const vortex_msgs::msg::GripperReferenceFilter::SharedPtr reference_filter_msg);
 
   void state_callback(
-    const vortex_msgs::msg::GripperState::SharedPtr state_msg);
+    const vortex_msgs::msg::GripperState::SharedPtr gripper_state_msg);
 
   void publish_control();
 
