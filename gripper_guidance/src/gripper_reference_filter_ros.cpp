@@ -239,9 +239,18 @@ void GripperReferenceFilterNode::execute(
     auto result = std::make_shared<
         vortex_msgs::action::GripperReferenceFilterWaypoint::Result>();
 
+    const double dt = time_step_.count() / 1000.0;
+    const double convergence_threshold_sq = convergence_threshold * convergence_threshold;
+
+    // Pre-allocate once and reuse every iteration
+    vortex_msgs::msg::GripperReferenceFilter feedback_msg;
+
     rclcpp::Rate loop_rate(1000.0 / time_step_.count());
 
+    int feedback_counter = 0;
+
     while (rclcpp::ok()) {
+        // Single lock covers both preemption and cancel checks
         {
             std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->get_goal_id() == preempted_goal_id_) {
@@ -250,9 +259,6 @@ void GripperReferenceFilterNode::execute(
                 goal_handle->abort(result);
                 return;
             }
-        }
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
             if (goal_handle->is_canceling()) {
                 publish_hold_reference();
                 result->success = false;
@@ -262,20 +268,34 @@ void GripperReferenceFilterNode::execute(
             }
         }
 
-        Eigen::Vector6d x_dot = gripper_reference_filter_->calculate_x_dot(x_, goal_reference); // ← fixed
-        x_ += x_dot * time_step_.count() / 1000.0;
+        x_ += gripper_reference_filter_->calculate_x_dot(x_, goal_reference) * dt;
 
-        vortex_msgs::msg::GripperReferenceFilter feedback_msg = fill_reference_msg();
-        feedback->reference = feedback_msg;
+        feedback_msg.roll        = x_(0);
+        feedback_msg.pinch       = x_(1);
+        feedback_msg.roll_dot    = x_(2);
+        feedback_msg.pinch_dot   = x_(3);
+        feedback_msg.roll_dotdot  = x_(4);
+        feedback_msg.pinch_dotdot = x_(5);
         reference_pub_->publish(feedback_msg);
-        goal_handle->publish_feedback(feedback);
 
-        if ((x_.head(2) - goal_reference).norm() < convergence_threshold) { // ← fixed
+        // Throttle action feedback to 10 Hz (every 10 iters at 100 Hz)
+        if (++feedback_counter % 10 == 0) {
+            feedback->reference = feedback_msg;
+            goal_handle->publish_feedback(feedback);
+        }
+
+        // squaredNorm avoids sqrt on every iteration
+        if ((x_.head<2>() - goal_reference).squaredNorm() < convergence_threshold_sq) {
             result->success = true;
+            x_.head<2>() = goal_reference;
+            feedback_msg.roll        = x_(0);
+            feedback_msg.pinch       = x_(1);
+            feedback_msg.roll_dot    = 0.0;
+            feedback_msg.pinch_dot   = 0.0;
+            feedback_msg.roll_dotdot  = 0.0;
+            feedback_msg.pinch_dotdot = 0.0;
+            reference_pub_->publish(feedback_msg);
             goal_handle->succeed(result);
-            x_.head(2) = goal_reference; // ← fixed
-            vortex_msgs::msg::GripperReferenceFilter final_msg = fill_reference_msg();
-            reference_pub_->publish(final_msg);
             spdlog::info("Goal reached");
             return;
         }

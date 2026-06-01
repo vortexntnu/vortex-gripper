@@ -11,8 +11,13 @@ GripperReferenceFilter::GripperReferenceFilter(const GripperReferenceFilterParam
 
 Eigen::Vector6d GripperReferenceFilter::calculate_x_dot(const Eigen::Vector6d& x,
                                                   const Eigen::Vector2d& r) {
-    Eigen::Vector6d x_dot = Ad_ * x + Bd_ * r;
-
+    Eigen::Vector6d x_dot;
+    // Rows 0-1: x_dot = x[2:4]  (Ad_ block identity, Bd_ zero)
+    x_dot.head<2>() = x.segment<2>(2);
+    // Rows 2-3: x_dot = x[4:6]  (Ad_ block identity, Bd_ zero)
+    x_dot.segment<2>(2) = x.tail<2>();
+    // Rows 4-5: only non-trivial rows — 2x6 matmul instead of full 6x6
+    x_dot.tail<2>().noalias() = Ad_.block<2, 6>(4, 0) * x + Bd_.block<2, 2>(4, 0) * r;
     return x_dot;
 }
 

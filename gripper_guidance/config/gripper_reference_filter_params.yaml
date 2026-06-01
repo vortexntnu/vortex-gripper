@@ -1,8 +1,8 @@
  /**:
   ros__parameters:
     # Filter dynamics parameters
-    zeta: [1.0, 1.0]    
-    omega: [0.4, 0.4]   
+    zeta: [1.0, 1.0]
+    omega: [1.0, 1.0]
 
     # Topics
     topics:
@@ -11,4 +11,4 @@
       
     # Action servers
     action_servers:
-      gripper_reference_filter: "vortex/gripper/reference_filter"
+      gripper_reference_filter: "/nautilus/gripper/reference_filter"

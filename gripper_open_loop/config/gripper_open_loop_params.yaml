@@ -1,0 +1,11 @@
+/**:
+  ros__parameters:
+    # How long to run the velocity command (seconds).
+    # Brute-force tune this until the physical delta matches the requested delta.
+    duration: 1.0
+
+    topics:
+      velocity_command: "vortex/gripper/control"
+
+    action_servers:
+      gripper_open_loop: "/nautilus/gripper/open_loop"
