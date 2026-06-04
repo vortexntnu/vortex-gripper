@@ -1,58 +1,53 @@
-#ifndef GRIPPER_INTERFACE_HPP
-#define GRIPPER_INTERFACE_HPP
+#pragma once
 
-#include <chrono>
-#include <cstdint>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <sensor_msgs/msg/joy.hpp>
-#include <std_msgs/msg/int16_multi_array.hpp>
-#include <string>
-#include <vector>
-#include <limits>
 #include "gripper_interface/gripper_interface_driver.hpp"
 
-class GripperInterface : public rclcpp::Node {
-   public:
-    GripperInterface();
+#include <boost/asio.hpp>
 
-   private:
-    /**
-     * @brief Extract parameters from the config file.
-     */
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joy.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/int16_multi_array.hpp>
+
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <thread>
+#include <vector>
+
+class GripperInterface : public rclcpp::Node {
+public:
+    GripperInterface();
+    ~GripperInterface() override;
+
+private:
     void extract_parameters();
 
-    void set_publisher_and_subsribers();
-
-    /**
-     * @brief Callback function for the joystick message.
-     * @param msg The joystick message.
-     */
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr msg);
 
-    void encoder_angles_callback();
+    void encoder_angles_callback(
+        const std::vector<double>& angles,
+        serial_status status);
 
-    /**
-     * @brief Convert a vector of PWM values to a ROS message.
-     * @param vec The vector of PWM values.
-     * @return The ROS message.
-     */
-    std_msgs::msg::Int16MultiArray vec_to_msg(std::vector<std::uint16_t> vec);
+    std_msgs::msg::Int16MultiArray vec_to_msg(
+        const std::vector<std::uint16_t>& vec);
 
     std::string joy_topic_;
     std::string pwm_topic_;
     std::string joint_state_topic_;
+
     int pwm_gain_;
     int pwm_idle_;
 
-    std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
+    std::string serial_port_;
+    unsigned int serial_baudrate_;
 
-    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
+    boost::asio::io_context asio_io_;
+    std::thread asio_thread_;
+
+    std::unique_ptr<GripperInterfaceDriver> gripper_driver_;
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_sub_;
     rclcpp::Publisher<std_msgs::msg::Int16MultiArray>::SharedPtr pwm_pub_;
-    rclcpp::TimerBase::SharedPtr watchdog_timer_;
-    rclcpp::Time last_msg_time_;
+    rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
 };
-
-#endif  // GRIPPER_INTERFACE_HPP

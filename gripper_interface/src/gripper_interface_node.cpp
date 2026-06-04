@@ -1,77 +1,139 @@
 #include "gripper_interface/gripper_interface_node.hpp"
-#include "can_interface.hpp"
+
+#include <spdlog/spdlog.h>
+
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <thread>
+#include <vector>
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     extract_parameters();
+
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
         joy_topic_, 10,
         std::bind(&GripperInterface::joy_callback, this,
                   std::placeholders::_1));
+
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
+
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
         joint_state_topic_, 10);
-    gripper_driver_ =
-        std::make_unique<GripperInterfaceDriver>(pwm_gain_, pwm_idle_);
 
-    gripper_driver_->init_can();
+    gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
+        asio_io_,
+        serial_port_,
+        serial_baudrate_,
+        pwm_gain_,
+        pwm_idle_);
 
-    gripper_driver_->start_read_encoders(encoder_angles_callback);
+    if (gripper_driver_->init_serial() != serial_status::OK) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to initialize gripper serial interface");
+        return;
+    }
+
+    gripper_driver_->start_read_encoders(
+        [this](const std::vector<double>& angles, serial_status status) {
+            this->encoder_angles_callback(angles, status);
+        });
+
+    asio_thread_ = std::thread([this]() {
+        asio_io_.run();
+    });
 
     spdlog::info("Gripper interface node started");
+}
+
+GripperInterface::~GripperInterface() {
+    asio_io_.stop();
+
+    if (asio_thread_.joinable()) {
+        asio_thread_.join();
+    }
 }
 
 void GripperInterface::extract_parameters() {
     this->declare_parameter<std::string>("topics.joy");
     this->declare_parameter<std::string>("topics.pwm");
     this->declare_parameter<std::string>("topics.joint_state");
+
     this->declare_parameter<int>("pwm.gain");
     this->declare_parameter<int>("pwm.idle");
+
+    this->declare_parameter<std::string>("serial.port", "/dev/ttyUSB0");
+    this->declare_parameter<int>("serial.baudrate", 115200);
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
     this->joint_state_topic_ =
         this->get_parameter("topics.joint_state").as_string();
+
     this->pwm_gain_ = this->get_parameter("pwm.gain").as_int();
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
+
+    this->serial_port_ = this->get_parameter("serial.port").as_string();
+    this->serial_baudrate_ =
+        static_cast<unsigned int>(this->get_parameter("serial.baudrate").as_int());
 }
 
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
+    constexpr std::size_t shoulder_axis = 1;
+    constexpr std::size_t wrist_axis = 0;
+    constexpr std::size_t grip_axis = 3;
+
+    constexpr std::size_t start_button = 0;
+    constexpr std::size_t stop_button = 1;
+
+    if (msg->axes.size() <= grip_axis) {
+        RCLCPP_WARN(this->get_logger(), "Joy message does not contain enough axes");
+        return;
+    }
+
+    if (msg->buttons.size() <= stop_button) {
+        RCLCPP_WARN(this->get_logger(), "Joy message does not contain enough buttons");
+        return;
+    }
+
+    const double shoulder_value = msg->axes[shoulder_axis];
+    const double wrist_value = msg->axes[wrist_axis];
+    const double grip_value = msg->axes[grip_axis];
+
     std::vector<std::uint16_t> pwm_values;
-    double shoulder_value = msg->axes[1];
-    double wrist_value = msg->axes[0];
-    double grip_value = msg->axes[3];
+    pwm_values.reserve(3);
 
-    std::uint16_t shoulder_pwm = gripper_driver_->joy_to_pwm(shoulder_value);
-    std::uint16_t wrist_pwm = gripper_driver_->joy_to_pwm(wrist_value);
-    std::uint16_t grip_pwm = gripper_driver_->joy_to_pwm(grip_value);
-
-    pwm_values.push_back(shoulder_pwm);
-    pwm_values.push_back(wrist_pwm);
-    pwm_values.push_back(grip_pwm);
+    pwm_values.push_back(gripper_driver_->joy_to_pwm(shoulder_value));
+    pwm_values.push_back(gripper_driver_->joy_to_pwm(wrist_value));
+    pwm_values.push_back(gripper_driver_->joy_to_pwm(grip_value));
 
     std_msgs::msg::Int16MultiArray pwm_msg = vec_to_msg(pwm_values);
     pwm_pub_->publish(pwm_msg);
 
-    if (gripper_driver_->send_pwm(pwm_values) != can_status::OK) {
-        std::cout << "error sending" << std::endl;
-    };
+    if (gripper_driver_->send_pwm(pwm_values) != serial_status::OK) {
+        RCLCPP_WARN(this->get_logger(), "Error sending gripper PWM over serial");
+    }
 
-    if (msg->buttons[0]) {
-        gripper_driver_->start_gripper();
-    } else if (msg->buttons[1]) {
-        gripper_driver_->stop_gripper();
+    if (msg->buttons[start_button]) {
+        if (gripper_driver_->start_gripper() != serial_status::OK) {
+            RCLCPP_WARN(this->get_logger(), "Error sending gripper start command");
+        }
+    } else if (msg->buttons[stop_button]) {
+        if (gripper_driver_->stop_gripper() != serial_status::OK) {
+            RCLCPP_WARN(this->get_logger(), "Error sending gripper stop command");
+        }
     }
 }
 
-void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame,
-                                               can_status status) {
-    if (status != can_status::OK) {
+void GripperInterface::encoder_angles_callback(
+    const std::vector<double>& angles,
+    serial_status status) {
+    if (status != serial_status::OK) {
+        RCLCPP_WARN(this->get_logger(), "Encoder read failed");
         return;
     }
 
-    std::vector<double> angles = gripper_driver_->parse_encoders(frame);
     if (angles.empty()) {
         return;
     }
@@ -86,11 +148,13 @@ void GripperInterface::encoder_angles_callback(const struct canfd_frame& frame,
 }
 
 std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(
-    std::vector<std::uint16_t> vec) {
+    const std::vector<std::uint16_t>& vec) {
     std_msgs::msg::Int16MultiArray msg;
+
     for (std::uint16_t value : vec) {
-        msg.data.push_back(value);
+        msg.data.push_back(static_cast<std::int16_t>(value));
     }
+
     return msg;
 }
 

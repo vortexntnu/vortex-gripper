@@ -1,116 +1,88 @@
-#ifndef GRIPPER_INTERFACE_DRIVER_HPP
-#define GRIPPER_INTERFACE_DRIVER_HPP
+#pragma once
 
-#include <fcntl.h>
-#include <linux/can.h>
-#include <linux/i2c-dev.h>
-#include <spdlog/spdlog.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <algorithm>  // for std::transform
+#include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
+
 #include <array>
-#include <cmath>
 #include <cstdint>
-#include <cstring>
-#include <format>
-#include <iostream>
-#include <numeric>  // for std::iota
-#include <ranges>
+#include <functional>
+#include <limits>
+#include <memory>
 #include <string>
 #include <vector>
-#include "can_interface.hpp"
 
-/**
- * @brief Class for interfacing with the gripper.
- */
+enum class serial_status {
+    OK,
+    ERR_NOT_INITIALIZED,
+    ERR_WRITE_FAILED,
+    ERR_READ_FAILED,
+    ERR_BAD_PACKET
+};
+
 class GripperInterfaceDriver {
-   public:
+public:
+    GripperInterfaceDriver(
+        boost::asio::io_context& io,
+        std::string port,
+        unsigned int baudrate,
+        int pwm_gain,
+        int pwm_idle
+    );
+
     ~GripperInterfaceDriver();
 
-    /**
-     * @brief Constructor for the GripperInterfaceDriver class.
-     * @param pwm_gain The gain for converting joystick values to PWM values.
-     * @param pwm_idle The idle PWM value.
-     */
-    GripperInterfaceDriver(int pwm_gain, int pwm_idle);
+    serial_status init_serial();
 
-    /**
-     * @brief init can
-     * @return 0 on success
-     */
-    can_status init_can();
+    std::uint16_t joy_to_pwm(double joy_value);
 
-    /**
-     * @brief Convert joystick value to PWM value.
-     * @param joy_value The joystick value.
-     * @return The PWM value.
-     */
-    std::uint16_t joy_to_pwm(const double joy_value);
-
-    /**
-     * @brief Send PWM values to the gripper.
-     * @param pwm_values The PWM values.
-     */
-    can_status send_pwm(const std::vector<std::uint16_t>& pwm_values);
-
-    /**
-     * @brief Start gripper by sending 0x02 first byte
-     * @param None
-     */
-    can_status start_gripper();
-
-    /**
-     * @brief Stop gripper by sending 0x01 first byte
-     * @param None
-     */
-    can_status stop_gripper();
-
-    /**
-     * @brief Parses and converts encoder data from a CAN FD frame.
-     *
-     * @param frame CAN FD frame containing raw encoder data.
-     * @return Vector containing the parsed encoder angles in the following
-     * order: (shoulder), wrist, and grip.
-     */
-    std::vector<double> parse_encoders(const struct canfd_frame& frame);
+    serial_status send_pwm(const std::vector<std::uint16_t>& pwm_values);
+    serial_status stop_gripper();
+    serial_status start_gripper();
 
     void start_read_encoders(
-        std::function<void(const struct canfd_frame&, can_status)> callback);
+        std::function<void(const std::vector<double>&, serial_status)> callback
+    );
 
-   private:
+private:
+    static constexpr std::uint8_t SOF = 0xAA;
+
+    static constexpr std::uint16_t GRIPPER_STOP_ID   = 0x469;
+    static constexpr std::uint16_t GRIPPER_START_ID  = 0x46A;
+    static constexpr std::uint16_t GRIPPER_PWM_ID    = 0x46B;
+    static constexpr std::uint16_t ENCODER_ANGLES_ID = 0x46D;
+
     int pwm_gain_;
     int pwm_idle_;
-    can_interface can_;
 
-    /**
-     * @brief Convert PWM value to I2C data.
-     * @param pwm The PWM value.
-     * @return The I2C data.
-     */
-    static constexpr std::array<std::uint8_t, 2> pwm_to_i2c_data(
-        std::uint16_t pwm) {
-        return {static_cast<std::uint8_t>((pwm >> 8) & 0xFF),
-                static_cast<std::uint8_t>(pwm & 0xFF)};
-    }
+    boost::asio::io_context& io_;
+    boost::asio::serial_port serial_;
+    std::string port_;
+    unsigned int baudrate_;
 
-    /**
-     * @brief Converts two uint8_t to uint16_t
-     *@param Array containing to uint8_t
-     *@return Encoder angles
-     */
-    static constexpr std::uint16_t i2c_to_encoder_angles(
-        std::array<std::uint8_t, 2> data) {
-        return (static_cast<std::uint16_t>(data[0]) << 8) | data[1];
-    }
-    /**
-     *@brief Converts raw encoder angle to radians
-     *@param Raw encoder angle (uint16_t)
-     *@return angle in radians (double)
-     */
-    static constexpr double raw_angle_to_radians(std::uint16_t raw_angle) {
-        return (static_cast<double>(raw_angle) / 0x3FFF) * (2.0 * M_PI);
-    }
+    std::array<std::uint8_t, 256> rx_buf_{};
+    std::vector<std::uint8_t> rx_accumulator_;
 
-};  // class GripperInterfaceDriver
+    std::function<void(const std::vector<double>&, serial_status)> encoder_callback_;
 
-#endif  // GRIPPER_INTERFACE_DRIVER_HPP
+    serial_status send_packet(std::uint16_t id, const std::uint8_t* data, std::size_t len);
+
+    void start_async_read();
+    void handle_received_bytes(std::size_t bytes_received);
+
+    bool try_extract_packet(
+        std::uint16_t& id,
+        std::vector<std::uint8_t>& payload
+    );
+
+    static std::uint8_t checksum_xor(
+        std::uint16_t id,
+        const std::uint8_t* data,
+        std::size_t len
+    );
+
+    static std::vector<double> parse_encoders_payload(
+        const std::vector<std::uint8_t>& payload
+    );
+
+    static double raw_angle_to_radians(std::uint16_t raw_angle);
+};
