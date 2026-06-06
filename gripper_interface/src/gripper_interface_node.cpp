@@ -136,7 +136,6 @@ void GripperInterface::extract_parameters() {
     RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u", serial_baudrate_);
 }
 
-
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
     constexpr std::size_t shoulder_axis = 1;  // Left stick vertical
@@ -144,6 +143,13 @@ void GripperInterface::joy_callback(
 
     constexpr std::size_t start_button = 0;
     constexpr std::size_t stop_button = 1;
+    constexpr std::size_t y_button = 3;
+
+    constexpr std::size_t rotate_pwm_index = 1;
+
+    constexpr std::uint16_t neutral_pwm = 1500;
+    constexpr std::uint16_t rotate_pwm = 1700;
+    constexpr double rotate_90_duration_s = 0.75;
 
     RCLCPP_DEBUG(this->get_logger(),
                  "Joy callback received: axes=%zu buttons=%zu",
@@ -158,18 +164,18 @@ void GripperInterface::joy_callback(
         return;
     }
 
-    if (msg->buttons.size() <= stop_button) {
+    if (msg->buttons.size() <= y_button) {
         RCLCPP_WARN(this->get_logger(),
                     "Joy message does not contain enough buttons: got %zu, need index %zu",
                     msg->buttons.size(),
-                    stop_button);
+                    y_button);
         return;
     }
 
+    const auto now = this->get_clock()->now();
+
     const double shoulder_value = msg->axes[shoulder_axis];
     const double wrist_value = msg->axes[wrist_axis];
-
-    constexpr std::uint16_t neutral_pwm = 1500;
 
     std::vector<std::uint16_t> pwm_values;
     pwm_values.reserve(3);
@@ -178,13 +184,44 @@ void GripperInterface::joy_callback(
     pwm_values.push_back(gripper_driver_->joy_to_pwm(wrist_value));
     pwm_values.push_back(neutral_pwm);
 
+    /*
+     * Y button: rotate gripper 90 degrees.
+     * Only trigger once per button press.
+     */
+    const bool y_pressed = msg->buttons[y_button] != 0;
+    const bool y_rising_edge = y_pressed && !y_button_was_pressed_;
+    y_button_was_pressed_ = y_pressed;
+
+    if (y_rising_edge && !rotate_90_active_) {
+        rotate_90_active_ = true;
+        rotate_90_end_time_ =
+            now + rclcpp::Duration::from_seconds(rotate_90_duration_s);
+
+        RCLCPP_INFO(this->get_logger(),
+                    "Y pressed: rotating gripper 90 degrees with PWM %u for %.2f s",
+                    rotate_pwm,
+                    rotate_90_duration_s);
+    }
+
+    if (rotate_90_active_) {
+        if (now < rotate_90_end_time_) {
+            pwm_values[rotate_pwm_index] = rotate_pwm;
+        } else {
+            rotate_90_active_ = false;
+            pwm_values[rotate_pwm_index] = neutral_pwm;
+
+            RCLCPP_INFO(this->get_logger(), "Rotate 90 finished");
+        }
+    }
+
     RCLCPP_INFO_THROTTLE(
         this->get_logger(),
         *this->get_clock(),
         500,
-        "Joy axes: shoulder=%.3f wrist=%.3f grip=neutral -> PWM: %u %u %u",
+        "Joy axes: shoulder=%.3f wrist=%.3f rotate_active=%d -> PWM: %u %u %u",
         shoulder_value,
         wrist_value,
+        rotate_90_active_,
         pwm_values[0],
         pwm_values[1],
         pwm_values[2]);
@@ -201,12 +238,6 @@ void GripperInterface::joy_callback(
             500,
             "send_pwm failed with status: %s",
             serial_status_to_string(pwm_status));
-    } else {
-        RCLCPP_INFO_THROTTLE(
-            this->get_logger(),
-            *this->get_clock(),
-            1000,
-            "send_pwm OK");
     }
 
     const bool start_pressed = msg->buttons[start_button] != 0;

@@ -41,6 +41,9 @@ private:
 
     bool start_button_was_pressed_ = false;
     bool stop_button_was_pressed_ = false;
+    bool y_button_was_pressed_ = false;
+    bool rotate_90_active_ = false;
+    rclcpp::Time rotate_90_end_time_;
 
     std::string serial_port_;
     unsigned int serial_baudrate_;
