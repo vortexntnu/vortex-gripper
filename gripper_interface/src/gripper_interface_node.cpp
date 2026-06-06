@@ -148,8 +148,8 @@ void GripperInterface::joy_callback(
     constexpr std::size_t rotate_pwm_index = 1;
 
     constexpr std::uint16_t neutral_pwm = 1500;
-    constexpr std::uint16_t rotate_pwm = 1700;
-    constexpr double rotate_90_duration_s = 0.75;
+    constexpr std::uint16_t rotate_pwm = 1765;
+    constexpr double rotate_90_duration_s = 1.0;
 
     RCLCPP_DEBUG(this->get_logger(),
                  "Joy callback received: axes=%zu buttons=%zu",
