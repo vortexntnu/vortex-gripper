@@ -138,9 +138,8 @@ void GripperInterface::extract_parameters() {
 
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
-    constexpr std::size_t shoulder_axis = 1;
-    constexpr std::size_t wrist_axis = 0;
-    constexpr std::size_t grip_axis = 3;
+    constexpr std::size_t shoulder_axis = 0;
+    constexpr std::size_t wrist_axis = 1;
 
     constexpr std::size_t start_button = 0;
     constexpr std::size_t stop_button = 1;
@@ -150,41 +149,39 @@ void GripperInterface::joy_callback(
                  msg->axes.size(),
                  msg->buttons.size());
 
-    if (msg->axes.size() <= grip_axis) {
+    if (msg->axes.size() < 2) {
         RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough axes: got %zu, need index %zu",
-                    msg->axes.size(),
-                    grip_axis);
+                    "Joy message does not contain enough axes: got %zu, need at least 2",
+                    msg->axes.size());
         return;
     }
 
-    if (msg->buttons.size() <= stop_button) {
+    if (msg->buttons.size() < 2) {
         RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough buttons: got %zu, need index %zu",
-                    msg->buttons.size(),
-                    stop_button);
+                    "Joy message does not contain enough buttons: got %zu, need at least 2",
+                    msg->buttons.size());
         return;
     }
 
     const double shoulder_value = msg->axes[shoulder_axis];
     const double wrist_value = msg->axes[wrist_axis];
-    const double grip_value = msg->axes[grip_axis];
+
+    constexpr std::uint16_t neutral_pwm = 1500;
 
     std::vector<std::uint16_t> pwm_values;
     pwm_values.reserve(3);
 
     pwm_values.push_back(gripper_driver_->joy_to_pwm(shoulder_value));
     pwm_values.push_back(gripper_driver_->joy_to_pwm(wrist_value));
-    pwm_values.push_back(gripper_driver_->joy_to_pwm(grip_value));
+    pwm_values.push_back(neutral_pwm);
 
     RCLCPP_INFO_THROTTLE(
         this->get_logger(),
         *this->get_clock(),
         500,
-        "Joy axes: shoulder=%.3f wrist=%.3f grip=%.3f -> PWM: %u %u %u",
+        "Joy axes: shoulder=%.3f wrist=%.3f grip=neutral -> PWM: %u %u %u",
         shoulder_value,
         wrist_value,
-        grip_value,
         pwm_values[0],
         pwm_values[1],
         pwm_values[2]);
