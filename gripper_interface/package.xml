@@ -3,8 +3,8 @@
 <package format="3">
   <name>gripper_interface</name>
   <version>0.0.0</version>
-  <description>Package to take joy inputs and turn them into pwm signals for the gripper servos</description>
-  <maintainer email="andeshog@stud.ntnu.no">andeshog</maintainer>
+  <description>Gripper interface for Nautilus</description>
+  <maintainer email="nathanif@stud.ntnu.no">forrisdahl</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
