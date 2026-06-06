@@ -39,6 +39,9 @@ private:
     int pwm_gain_;
     int pwm_idle_;
 
+    bool start_button_was_pressed_ = false;
+    bool stop_button_was_pressed_ = false;
+
     std::string serial_port_;
     unsigned int serial_baudrate_;
 

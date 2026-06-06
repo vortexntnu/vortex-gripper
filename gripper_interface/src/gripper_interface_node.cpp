@@ -136,10 +136,11 @@ void GripperInterface::extract_parameters() {
     RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u", serial_baudrate_);
 }
 
+
 void GripperInterface::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg) {
-    constexpr std::size_t shoulder_axis = 0;
-    constexpr std::size_t wrist_axis = 1;
+    constexpr std::size_t shoulder_axis = 1;  // Left stick vertical
+    constexpr std::size_t wrist_axis = 4;     // Right stick vertical
 
     constexpr std::size_t start_button = 0;
     constexpr std::size_t stop_button = 1;
@@ -149,17 +150,19 @@ void GripperInterface::joy_callback(
                  msg->axes.size(),
                  msg->buttons.size());
 
-    if (msg->axes.size() < 2) {
+    if (msg->axes.size() <= wrist_axis) {
         RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough axes: got %zu, need at least 2",
-                    msg->axes.size());
+                    "Joy message does not contain enough axes: got %zu, need index %zu",
+                    msg->axes.size(),
+                    wrist_axis);
         return;
     }
 
-    if (msg->buttons.size() < 2) {
+    if (msg->buttons.size() <= stop_button) {
         RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough buttons: got %zu, need at least 2",
-                    msg->buttons.size());
+                    "Joy message does not contain enough buttons: got %zu, need index %zu",
+                    msg->buttons.size(),
+                    stop_button);
         return;
     }
 
@@ -206,7 +209,16 @@ void GripperInterface::joy_callback(
             "send_pwm OK");
     }
 
-    if (msg->buttons[start_button]) {
+    const bool start_pressed = msg->buttons[start_button] != 0;
+    const bool stop_pressed = msg->buttons[stop_button] != 0;
+
+    const bool start_rising_edge = start_pressed && !start_button_was_pressed_;
+    const bool stop_rising_edge = stop_pressed && !stop_button_was_pressed_;
+
+    start_button_was_pressed_ = start_pressed;
+    stop_button_was_pressed_ = stop_pressed;
+
+    if (start_rising_edge) {
         RCLCPP_INFO(this->get_logger(), "START button pressed");
 
         const auto start_status = gripper_driver_->start_gripper();
@@ -218,7 +230,7 @@ void GripperInterface::joy_callback(
         } else {
             RCLCPP_INFO(this->get_logger(), "start_gripper OK");
         }
-    } else if (msg->buttons[stop_button]) {
+    } else if (stop_rising_edge) {
         RCLCPP_INFO(this->get_logger(), "STOP button pressed");
 
         const auto stop_status = gripper_driver_->stop_gripper();
