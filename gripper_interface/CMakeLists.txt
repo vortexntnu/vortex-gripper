@@ -16,6 +16,8 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(action_tutorials_interfaces REQUIRED)
 
 add_executable(${PROJECT_NAME}_node
   src/gripper_interface_node.cpp
@@ -29,6 +31,8 @@ ament_target_dependencies(${PROJECT_NAME}_node
   sensor_msgs
   spdlog
   fmt
+  rclcpp_action
+  action_tutorials_interfaces
 )
 
 install(DIRECTORY

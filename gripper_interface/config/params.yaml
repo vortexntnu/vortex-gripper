@@ -10,5 +10,5 @@ gripper_interface_node:
       idle: 1500
 
     serial:
-      port: "/dev/ttyUSB0"
+      port: "/dev/ttyACM0"
       baudrate: 115200

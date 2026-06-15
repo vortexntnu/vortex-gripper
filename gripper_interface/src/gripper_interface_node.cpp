@@ -42,24 +42,28 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
 
-    RCLCPP_INFO(this->get_logger(), "Creating joint state publisher on topic: %s",
+    rotate_action_server_ = rclcpp_action::create_server<RotateAction>(
+        this, "rotate_gripper",
+        std::bind(&GripperInterface::handle_rotate_goal, this,
+                  std::placeholders::_1, std::placeholders::_2),
+        std::bind(&GripperInterface::handle_rotate_cancel, this,
+                  std::placeholders::_1),
+        std::bind(&GripperInterface::handle_rotate_accepted, this,
+                  std::placeholders::_1));
+
+    RCLCPP_INFO(this->get_logger(),
+                "Creating joint state publisher on topic: %s",
                 joint_state_topic_.c_str());
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
         joint_state_topic_, 10);
 
-    RCLCPP_INFO(this->get_logger(),
-                "Creating gripper driver: port=%s baud=%u pwm_gain=%d pwm_idle=%d",
-                serial_port_.c_str(),
-                serial_baudrate_,
-                pwm_gain_,
-                pwm_idle_);
+    RCLCPP_INFO(
+        this->get_logger(),
+        "Creating gripper driver: port=%s baud=%u pwm_gain=%d pwm_idle=%d",
+        serial_port_.c_str(), serial_baudrate_, pwm_gain_, pwm_idle_);
 
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
-        asio_io_,
-        serial_port_,
-        serial_baudrate_,
-        pwm_gain_,
-        pwm_idle_);
+        asio_io_, serial_port_, serial_baudrate_, pwm_gain_, pwm_idle_);
 
     const auto init_status = gripper_driver_->init_serial();
 
@@ -69,7 +73,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
                      serial_port_.c_str(),
                      serial_status_to_string(init_status));
 
-        throw std::runtime_error("Failed to initialize gripper serial interface");
+        throw std::runtime_error(
+            "Failed to initialize gripper serial interface");
     }
 
     RCLCPP_INFO(this->get_logger(),
@@ -103,6 +108,145 @@ GripperInterface::~GripperInterface() {
     }
 }
 
+rclcpp_action::CancelResponse GripperInterface::handle_rotate_cancel(
+    const std::shared_ptr<RotateGoalHandle> goal_handle) {
+    (void)goal_handle;
+
+    RCLCPP_INFO(this->get_logger(), "Rotate cancel requested");
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+
+void GripperInterface::handle_rotate_accepted(
+    const std::shared_ptr<RotateGoalHandle> goal_handle) {
+    std::thread{
+        std::bind(&GripperInterface::execute_rotate, this, goal_handle)}
+        .detach();
+}
+
+rclcpp_action::GoalResponse GripperInterface::handle_rotate_goal(
+    const rclcpp_action::GoalUUID & uuid,
+    std::shared_ptr<const RotateAction::Goal> goal) {
+    (void)uuid;
+
+    if (goal->order != -1 && goal->order != 1) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Rejecting rotate goal. Use order=-1 for left or order=1 for right");
+        return rclcpp_action::GoalResponse::REJECT;
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Accepted rotate goal: direction=%s",
+                goal->order > 0 ? "right" : "left");
+
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+void GripperInterface::execute_rotate(
+    const std::shared_ptr<RotateGoalHandle> goal_handle) {
+    const auto goal = goal_handle->get_goal();
+
+    auto result = std::make_shared<RotateAction::Result>();
+    auto feedback = std::make_shared<RotateAction::Feedback>();
+
+    constexpr std::size_t rotate_pwm_index = 2;
+
+    constexpr std::uint16_t neutral_pwm = 1500;
+    constexpr std::uint16_t rotate_pwm_right = 1700;
+    constexpr std::uint16_t rotate_pwm_left = 1300;
+
+    constexpr double rotate_duration_s = 0.6;
+
+    const std::uint16_t active_pwm =
+        goal->order > 0 ? rotate_pwm_right : rotate_pwm_left;
+
+    const auto start_time = this->get_clock()->now();
+    const auto end_time =
+        start_time + rclcpp::Duration::from_seconds(rotate_duration_s);
+
+    rclcpp::Rate rate(50);
+
+    RCLCPP_INFO(this->get_logger(),
+                "Rotating gripper %s with PWM %u for %.2f s",
+                goal->order > 0 ? "right" : "left",
+                active_pwm,
+                rotate_duration_s);
+
+    while (rclcpp::ok() && this->get_clock()->now() < end_time) {
+        if (goal_handle->is_canceling()) {
+            std::vector<std::uint16_t> stop_pwm = {
+                neutral_pwm,
+                neutral_pwm,
+                neutral_pwm,
+            };
+
+            gripper_driver_->send_pwm(stop_pwm);
+
+            result->sequence.clear();
+            goal_handle->canceled(result);
+
+            RCLCPP_INFO(this->get_logger(), "Rotate action canceled");
+            return;
+        }
+
+        std::vector<std::uint16_t> pwm_values = {
+            neutral_pwm,
+            neutral_pwm,
+            neutral_pwm,
+        };
+
+        pwm_values[rotate_pwm_index] = active_pwm;
+
+        const auto status = gripper_driver_->send_pwm(pwm_values);
+
+        if (status != serial_status::OK) {
+            std::vector<std::uint16_t> stop_pwm = {
+                neutral_pwm,
+                neutral_pwm,
+                neutral_pwm,
+            };
+
+            gripper_driver_->send_pwm(stop_pwm);
+
+            result->sequence.clear();
+            goal_handle->abort(result);
+
+            RCLCPP_WARN(this->get_logger(),
+                        "Rotate action aborted: send_pwm failed with status %s",
+                        serial_status_to_string(status));
+            return;
+        }
+
+        const double elapsed_s =
+            (this->get_clock()->now() - start_time).seconds();
+
+        feedback->partial_sequence = {
+            static_cast<int32_t>(elapsed_s * 1000.0),
+        };
+
+        goal_handle->publish_feedback(feedback);
+
+        rate.sleep();
+    }
+
+    std::vector<std::uint16_t> stop_pwm = {
+        neutral_pwm,
+        neutral_pwm,
+        neutral_pwm,
+    };
+
+    gripper_driver_->send_pwm(stop_pwm);
+
+    result->sequence = {
+        goal->order,
+    };
+
+    goal_handle->succeed(result);
+
+    RCLCPP_INFO(this->get_logger(), "Rotate action finished");
+}
+
+
 void GripperInterface::extract_parameters() {
     this->declare_parameter<std::string>("topics.joy");
     this->declare_parameter<std::string>("topics.pwm");
@@ -123,17 +267,22 @@ void GripperInterface::extract_parameters() {
     this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
 
     this->serial_port_ = this->get_parameter("serial.port").as_string();
-    this->serial_baudrate_ =
-        static_cast<unsigned int>(this->get_parameter("serial.baudrate").as_int());
+    this->serial_baudrate_ = static_cast<unsigned int>(
+        this->get_parameter("serial.baudrate").as_int());
 
     RCLCPP_INFO(this->get_logger(), "Loaded parameters:");
-    RCLCPP_INFO(this->get_logger(), "  topics.joy         = %s", joy_topic_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  topics.pwm         = %s", pwm_topic_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  topics.joint_state = %s", joint_state_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  topics.joy         = %s",
+                joy_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  topics.pwm         = %s",
+                pwm_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  topics.joint_state = %s",
+                joint_state_topic_.c_str());
     RCLCPP_INFO(this->get_logger(), "  pwm.gain           = %d", pwm_gain_);
     RCLCPP_INFO(this->get_logger(), "  pwm.idle           = %d", pwm_idle_);
-    RCLCPP_INFO(this->get_logger(), "  serial.port        = %s", serial_port_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u", serial_baudrate_);
+    RCLCPP_INFO(this->get_logger(), "  serial.port        = %s",
+                serial_port_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u",
+                serial_baudrate_);
 }
 
 void GripperInterface::joy_callback(
@@ -153,22 +302,21 @@ void GripperInterface::joy_callback(
 
     RCLCPP_DEBUG(this->get_logger(),
                  "Joy callback received: axes=%zu buttons=%zu",
-                 msg->axes.size(),
-                 msg->buttons.size());
+                 msg->axes.size(), msg->buttons.size());
 
     if (msg->axes.size() <= wrist_axis) {
-        RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough axes: got %zu, need index %zu",
-                    msg->axes.size(),
-                    wrist_axis);
+        RCLCPP_WARN(
+            this->get_logger(),
+            "Joy message does not contain enough axes: got %zu, need index %zu",
+            msg->axes.size(), wrist_axis);
         return;
     }
 
     if (msg->buttons.size() <= y_button) {
         RCLCPP_WARN(this->get_logger(),
-                    "Joy message does not contain enough buttons: got %zu, need index %zu",
-                    msg->buttons.size(),
-                    y_button);
+                    "Joy message does not contain enough buttons: got %zu, "
+                    "need index %zu",
+                    msg->buttons.size(), y_button);
         return;
     }
 
@@ -197,10 +345,10 @@ void GripperInterface::joy_callback(
         rotate_90_end_time_ =
             now + rclcpp::Duration::from_seconds(rotate_90_duration_s);
 
-        RCLCPP_INFO(this->get_logger(),
-                    "Y pressed: rotating gripper 90 degrees with PWM %u for %.2f s",
-                    rotate_pwm,
-                    rotate_90_duration_s);
+        RCLCPP_INFO(
+            this->get_logger(),
+            "Y pressed: rotating gripper 90 degrees with PWM %u for %.2f s",
+            rotate_pwm, rotate_90_duration_s);
     }
 
     if (rotate_90_active_) {
@@ -215,16 +363,10 @@ void GripperInterface::joy_callback(
     }
 
     RCLCPP_INFO_THROTTLE(
-        this->get_logger(),
-        *this->get_clock(),
-        500,
+        this->get_logger(), *this->get_clock(), 500,
         "Joy axes: shoulder=%.3f wrist=%.3f rotate_active=%d -> PWM: %u %u %u",
-        shoulder_value,
-        wrist_value,
-        rotate_90_active_,
-        pwm_values[0],
-        pwm_values[1],
-        pwm_values[2]);
+        shoulder_value, wrist_value, rotate_90_active_, pwm_values[0],
+        pwm_values[1], pwm_values[2]);
 
     std_msgs::msg::Int16MultiArray pwm_msg = vec_to_msg(pwm_values);
     pwm_pub_->publish(pwm_msg);
@@ -232,12 +374,9 @@ void GripperInterface::joy_callback(
     const auto pwm_status = gripper_driver_->send_pwm(pwm_values);
 
     if (pwm_status != serial_status::OK) {
-        RCLCPP_WARN_THROTTLE(
-            this->get_logger(),
-            *this->get_clock(),
-            500,
-            "send_pwm failed with status: %s",
-            serial_status_to_string(pwm_status));
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 500,
+                             "send_pwm failed with status: %s",
+                             serial_status_to_string(pwm_status));
     }
 
     const bool start_pressed = msg->buttons[start_button] != 0;
@@ -280,28 +419,21 @@ void GripperInterface::encoder_angles_callback(
     const std::vector<double>& angles,
     serial_status status) {
     if (status != serial_status::OK) {
-        RCLCPP_WARN(this->get_logger(),
-                    "Encoder read failed with status: %s",
+        RCLCPP_WARN(this->get_logger(), "Encoder read failed with status: %s",
                     serial_status_to_string(status));
         return;
     }
 
     if (angles.empty()) {
-        RCLCPP_WARN_THROTTLE(
-            this->get_logger(),
-            *this->get_clock(),
-            1000,
-            "Received empty encoder angle vector");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "Received empty encoder angle vector");
         return;
     }
 
     RCLCPP_INFO_THROTTLE(
-        this->get_logger(),
-        *this->get_clock(),
-        1000,
+        this->get_logger(), *this->get_clock(), 1000,
         "Received encoder angles: count=%zu first=%.4f second=%.4f",
-        angles.size(),
-        angles.size() > 0 ? angles[0] : 0.0,
+        angles.size(), angles.size() > 0 ? angles[0] : 0.0,
         angles.size() > 1 ? angles[1] : 0.0);
 
     auto joint_state_msg = sensor_msgs::msg::JointState();
