@@ -9,8 +9,8 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <std_msgs/msg/int16_multi_array.hpp>
 
-#include <atomic>
 #include <action_tutorials_interfaces/action/fibonacci.hpp>
+#include <atomic>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <thread>
 
@@ -73,8 +73,19 @@ class GripperInterface : public rclcpp::Node {
     rclcpp_action::CancelResponse handle_rotate_cancel(
         const std::shared_ptr<RotateGoalHandle> goal_handle);
 
+    rclcpp::TimerBase::SharedPtr watchdog_timer_;
+
+    rclcpp::Time last_pwm_msg_time_;
+
+    bool pwm_watchdog_timed_out_ = true;
+
+    double pwm_watchdog_timeout_s_ = 0.25;
+    int neutral_pwm_ = 1500;
+
     void handle_rotate_accepted(
         const std::shared_ptr<RotateGoalHandle> goal_handle);
 
     void execute_rotate(const std::shared_ptr<RotateGoalHandle> goal_handle);
+    void watchdog_callback();
+    void send_neutral_pwm();
 };

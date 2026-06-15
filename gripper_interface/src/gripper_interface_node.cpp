@@ -77,6 +77,12 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
             "Failed to initialize gripper serial interface");
     }
 
+    last_pwm_msg_time_ = this->get_clock()->now();
+
+    watchdog_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(20),
+        std::bind(&GripperInterface::watchdog_callback, this));
+
     RCLCPP_INFO(this->get_logger(),
                 "Successfully initialized serial interface on %s",
                 serial_port_.c_str());
@@ -116,27 +122,25 @@ rclcpp_action::CancelResponse GripperInterface::handle_rotate_cancel(
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-
 void GripperInterface::handle_rotate_accepted(
     const std::shared_ptr<RotateGoalHandle> goal_handle) {
-    std::thread{
-        std::bind(&GripperInterface::execute_rotate, this, goal_handle)}
+    std::thread{std::bind(&GripperInterface::execute_rotate, this, goal_handle)}
         .detach();
 }
 
 rclcpp_action::GoalResponse GripperInterface::handle_rotate_goal(
-    const rclcpp_action::GoalUUID & uuid,
+    const rclcpp_action::GoalUUID& uuid,
     std::shared_ptr<const RotateAction::Goal> goal) {
     (void)uuid;
 
     if (goal->order != -1 && goal->order != 1) {
         RCLCPP_WARN(this->get_logger(),
-                    "Rejecting rotate goal. Use order=-1 for left or order=1 for right");
+                    "Rejecting rotate goal. Use order=-1 for left or order=1 "
+                    "for right");
         return rclcpp_action::GoalResponse::REJECT;
     }
 
-    RCLCPP_INFO(this->get_logger(),
-                "Accepted rotate goal: direction=%s",
+    RCLCPP_INFO(this->get_logger(), "Accepted rotate goal: direction=%s",
                 goal->order > 0 ? "right" : "left");
 
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -166,11 +170,9 @@ void GripperInterface::execute_rotate(
 
     rclcpp::Rate rate(50);
 
-    RCLCPP_INFO(this->get_logger(),
-                "Rotating gripper %s with PWM %u for %.2f s",
-                goal->order > 0 ? "right" : "left",
-                active_pwm,
-                rotate_duration_s);
+    RCLCPP_INFO(
+        this->get_logger(), "Rotating gripper %s with PWM %u for %.2f s",
+        goal->order > 0 ? "right" : "left", active_pwm, rotate_duration_s);
 
     while (rclcpp::ok() && this->get_clock()->now() < end_time) {
         if (goal_handle->is_canceling()) {
@@ -246,7 +248,6 @@ void GripperInterface::execute_rotate(
     RCLCPP_INFO(this->get_logger(), "Rotate action finished");
 }
 
-
 void GripperInterface::extract_parameters() {
     this->declare_parameter<std::string>("topics.joy");
     this->declare_parameter<std::string>("topics.pwm");
@@ -257,6 +258,9 @@ void GripperInterface::extract_parameters() {
 
     this->declare_parameter<std::string>("serial.port", "/dev/ttyUSB0");
     this->declare_parameter<int>("serial.baudrate", 115200);
+
+    this->declare_parameter<double>("watchdog.timeout_s", 0.25);
+    this->declare_parameter<int>("watchdog.neutral_pwm", 1500);
 
     this->joy_topic_ = this->get_parameter("topics.joy").as_string();
     this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
@@ -269,6 +273,11 @@ void GripperInterface::extract_parameters() {
     this->serial_port_ = this->get_parameter("serial.port").as_string();
     this->serial_baudrate_ = static_cast<unsigned int>(
         this->get_parameter("serial.baudrate").as_int());
+
+    this->pwm_watchdog_timeout_s_ =
+        this->get_parameter("watchdog.timeout_s").as_double();
+
+    this->neutral_pwm_ = this->get_parameter("watchdog.neutral_pwm").as_int();
 
     RCLCPP_INFO(this->get_logger(), "Loaded parameters:");
     RCLCPP_INFO(this->get_logger(), "  topics.joy         = %s",
@@ -377,6 +386,9 @@ void GripperInterface::joy_callback(
         RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 500,
                              "send_pwm failed with status: %s",
                              serial_status_to_string(pwm_status));
+    } else {
+        last_pwm_msg_time_ = this->get_clock()->now();
+        pwm_watchdog_timed_out_ = false;
     }
 
     const bool start_pressed = msg->buttons[start_button] != 0;
@@ -454,6 +466,47 @@ std_msgs::msg::Int16MultiArray GripperInterface::vec_to_msg(
     }
 
     return msg;
+}
+
+void GripperInterface::send_neutral_pwm() {
+    const auto neutral = static_cast<std::uint16_t>(neutral_pwm_);
+
+    std::vector<std::uint16_t> neutral_values = {
+        neutral,
+        neutral,
+        neutral,
+    };
+
+    pwm_pub_->publish(vec_to_msg(neutral_values));
+
+    const auto status = gripper_driver_->send_pwm(neutral_values);
+
+    if (status != serial_status::OK) {
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                             "Watchdog neutral send_pwm failed with status: %s",
+                             serial_status_to_string(status));
+    }
+}
+
+void GripperInterface::watchdog_callback() {
+    const auto now = this->get_clock()->now();
+    const double age_s = (now - last_pwm_msg_time_).seconds();
+
+    if (age_s < pwm_watchdog_timeout_s_) {
+        pwm_watchdog_timed_out_ = false;
+        return;
+    }
+
+    if (!pwm_watchdog_timed_out_) {
+        RCLCPP_WARN(
+            this->get_logger(),
+            "PWM watchdog timeout: no command for %.3f s, sending neutral",
+            age_s);
+
+        send_neutral_pwm();
+
+        pwm_watchdog_timed_out_ = true;
+    }
 }
 
 int main(int argc, char* argv[]) {
