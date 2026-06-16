@@ -74,19 +74,13 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
             this->encoder_angles_callback(angles, status);
         });
 
-
-    asio_thread_ = std::thread([this]() {
-        asio_io_.run();
-    });
-
+    asio_thread_ = std::thread([this]() { asio_io_.run(); });
 }
 
 GripperInterface::~GripperInterface() {
-
     asio_io_.stop();
 
     if (asio_thread_.joinable()) {
-        RCLCPP_INFO(this->get_logger(), "Joining Boost.Asio IO thread");
         asio_thread_.join();
     }
 }
@@ -225,50 +219,19 @@ void GripperInterface::execute_rotate(
     RCLCPP_INFO(this->get_logger(), "Rotate action finished");
 }
 
-void GripperInterface::extract_parameters() {
-    this->declare_parameter<std::string>("topics.joy");
-    this->declare_parameter<std::string>("topics.pwm");
-    this->declare_parameter<std::string>("topics.joint_state");
+static double apply_deadband(double value, double deadband) {
+    if (std::abs(value) < deadband) {
+        return 0.0;
+    }
 
-    this->declare_parameter<int>("pwm.gain");
-    this->declare_parameter<int>("pwm.idle");
+    /*
+     * Rescale outside the deadband so the output still reaches +/-1.0.
+     * This avoids a sudden jump at the deadband edge.
+     */
+    const double sign = value > 0.0 ? 1.0 : -1.0;
+    const double magnitude = (std::abs(value) - deadband) / (1.0 - deadband);
 
-    this->declare_parameter<std::string>("serial.port", "/dev/ttyUSB0");
-    this->declare_parameter<int>("serial.baudrate", 115200);
-
-    this->declare_parameter<double>("watchdog.timeout_s", 0.25);
-    this->declare_parameter<int>("watchdog.neutral_pwm", 1500);
-
-    this->joy_topic_ = this->get_parameter("topics.joy").as_string();
-    this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
-    this->joint_state_topic_ =
-        this->get_parameter("topics.joint_state").as_string();
-
-    this->pwm_gain_ = this->get_parameter("pwm.gain").as_int();
-    this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
-
-    this->serial_port_ = this->get_parameter("serial.port").as_string();
-    this->serial_baudrate_ = static_cast<unsigned int>(
-        this->get_parameter("serial.baudrate").as_int());
-
-    this->pwm_watchdog_timeout_s_ =
-        this->get_parameter("watchdog.timeout_s").as_double();
-
-    this->neutral_pwm_ = this->get_parameter("watchdog.neutral_pwm").as_int();
-
-    RCLCPP_INFO(this->get_logger(), "Loaded parameters:");
-    RCLCPP_INFO(this->get_logger(), "  topics.joy         = %s",
-                joy_topic_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  topics.pwm         = %s",
-                pwm_topic_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  topics.joint_state = %s",
-                joint_state_topic_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  pwm.gain           = %d", pwm_gain_);
-    RCLCPP_INFO(this->get_logger(), "  pwm.idle           = %d", pwm_idle_);
-    RCLCPP_INFO(this->get_logger(), "  serial.port        = %s",
-                serial_port_.c_str());
-    RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u",
-                serial_baudrate_);
+    return sign * magnitude;
 }
 
 void GripperInterface::joy_callback(
@@ -308,8 +271,14 @@ void GripperInterface::joy_callback(
 
     const auto now = this->get_clock()->now();
 
-    const double shoulder_value = msg->axes[shoulder_axis];
-    const double wrist_value = msg->axes[wrist_axis];
+    constexpr double joystick_deadband = 0.12;
+
+    const double shoulder_raw = msg->axes[shoulder_axis];
+    const double wrist_raw = msg->axes[wrist_axis];
+
+    const double shoulder_value =
+        apply_deadband(shoulder_raw, joystick_deadband);
+    const double wrist_value = apply_deadband(wrist_raw, joystick_deadband);
 
     std::vector<std::uint16_t> pwm_values;
     pwm_values.reserve(3);
@@ -480,6 +449,52 @@ void GripperInterface::watchdog_callback() {
 
         pwm_watchdog_timed_out_ = true;
     }
+}
+
+void GripperInterface::extract_parameters() {
+    this->declare_parameter<std::string>("topics.joy");
+    this->declare_parameter<std::string>("topics.pwm");
+    this->declare_parameter<std::string>("topics.joint_state");
+
+    this->declare_parameter<int>("pwm.gain");
+    this->declare_parameter<int>("pwm.idle");
+
+    this->declare_parameter<std::string>("serial.port", "/dev/ttyUSB0");
+    this->declare_parameter<int>("serial.baudrate", 115200);
+
+    this->declare_parameter<double>("watchdog.timeout_s", 0.25);
+    this->declare_parameter<int>("watchdog.neutral_pwm", 1500);
+
+    this->joy_topic_ = this->get_parameter("topics.joy").as_string();
+    this->pwm_topic_ = this->get_parameter("topics.pwm").as_string();
+    this->joint_state_topic_ =
+        this->get_parameter("topics.joint_state").as_string();
+
+    this->pwm_gain_ = this->get_parameter("pwm.gain").as_int();
+    this->pwm_idle_ = this->get_parameter("pwm.idle").as_int();
+
+    this->serial_port_ = this->get_parameter("serial.port").as_string();
+    this->serial_baudrate_ = static_cast<unsigned int>(
+        this->get_parameter("serial.baudrate").as_int());
+
+    this->pwm_watchdog_timeout_s_ =
+        this->get_parameter("watchdog.timeout_s").as_double();
+
+    this->neutral_pwm_ = this->get_parameter("watchdog.neutral_pwm").as_int();
+
+    RCLCPP_INFO(this->get_logger(), "Loaded parameters:");
+    RCLCPP_INFO(this->get_logger(), "  topics.joy         = %s",
+                joy_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  topics.pwm         = %s",
+                pwm_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  topics.joint_state = %s",
+                joint_state_topic_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  pwm.gain           = %d", pwm_gain_);
+    RCLCPP_INFO(this->get_logger(), "  pwm.idle           = %d", pwm_idle_);
+    RCLCPP_INFO(this->get_logger(), "  serial.port        = %s",
+                serial_port_.c_str());
+    RCLCPP_INFO(this->get_logger(), "  serial.baudrate    = %u",
+                serial_baudrate_);
 }
 
 int main(int argc, char* argv[]) {
