@@ -26,19 +26,13 @@ static const char* serial_status_to_string(serial_status status) {
 }
 
 GripperInterface::GripperInterface() : Node("gripper_interface_node") {
-    RCLCPP_INFO(this->get_logger(), "Constructing gripper interface node");
-
     extract_parameters();
 
-    RCLCPP_INFO(this->get_logger(), "Creating joy subscription on topic: %s",
-                joy_topic_.c_str());
     joy_sub_ = this->create_subscription<sensor_msgs::msg::Joy>(
         joy_topic_, 10,
         std::bind(&GripperInterface::joy_callback, this,
                   std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(), "Creating PWM publisher on topic: %s",
-                pwm_topic_.c_str());
     pwm_pub_ =
         this->create_publisher<std_msgs::msg::Int16MultiArray>(pwm_topic_, 10);
 
@@ -51,16 +45,8 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         std::bind(&GripperInterface::handle_rotate_accepted, this,
                   std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(),
-                "Creating joint state publisher on topic: %s",
-                joint_state_topic_.c_str());
     joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
         joint_state_topic_, 10);
-
-    RCLCPP_INFO(
-        this->get_logger(),
-        "Creating gripper driver: port=%s baud=%u pwm_gain=%d pwm_idle=%d",
-        serial_port_.c_str(), serial_baudrate_, pwm_gain_, pwm_idle_);
 
     gripper_driver_ = std::make_unique<GripperInterfaceDriver>(
         asio_io_, serial_port_, serial_baudrate_, pwm_gain_, pwm_idle_);
@@ -83,28 +69,19 @@ GripperInterface::GripperInterface() : Node("gripper_interface_node") {
         std::chrono::milliseconds(20),
         std::bind(&GripperInterface::watchdog_callback, this));
 
-    RCLCPP_INFO(this->get_logger(),
-                "Successfully initialized serial interface on %s",
-                serial_port_.c_str());
-
     gripper_driver_->start_read_encoders(
         [this](const std::vector<double>& angles, serial_status status) {
             this->encoder_angles_callback(angles, status);
         });
 
-    RCLCPP_INFO(this->get_logger(), "Starting Boost.Asio IO thread");
 
     asio_thread_ = std::thread([this]() {
-        RCLCPP_INFO(this->get_logger(), "Boost.Asio IO thread entered run()");
         asio_io_.run();
-        RCLCPP_WARN(this->get_logger(), "Boost.Asio IO thread exited run()");
     });
 
-    RCLCPP_INFO(this->get_logger(), "Gripper interface node started");
 }
 
 GripperInterface::~GripperInterface() {
-    RCLCPP_INFO(this->get_logger(), "Destroying gripper interface node");
 
     asio_io_.stop();
 
@@ -341,10 +318,6 @@ void GripperInterface::joy_callback(
     pwm_values.push_back(gripper_driver_->joy_to_pwm(wrist_value));
     pwm_values.push_back(neutral_pwm);
 
-    /*
-     * Y button: rotate gripper 90 degrees.
-     * Only trigger once per button press.
-     */
     const bool y_pressed = msg->buttons[y_button] != 0;
     const bool y_rising_edge = y_pressed && !y_button_was_pressed_;
     y_button_was_pressed_ = y_pressed;
