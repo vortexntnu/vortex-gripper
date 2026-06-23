@@ -1,48 +1,35 @@
-cmake_minimum_required(VERSION 3.8)
-project(gripper_interface)
+cmake_minimum_required(VERSION 3.20)
 
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 20)
-endif()
+project(gripper_controller LANGUAGES CXX)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-include_directories(include)
-
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(spdlog REQUIRED)
-find_package(fmt REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(action_tutorials_interfaces REQUIRED)
-
-add_executable(${PROJECT_NAME}_node
-  src/gripper_interface_node.cpp
-  src/gripper_interface_driver.cpp
+add_executable(gripper_controller
+    src/main.cpp
+    src/joystick.cpp
+    src/gripper_interface_driver.cpp
 )
 
-target_link_libraries(${PROJECT_NAME}_node fmt::fmt)
-
-ament_target_dependencies(${PROJECT_NAME}_node
-  rclcpp
-  sensor_msgs
-  spdlog
-  fmt
-  rclcpp_action
-  action_tutorials_interfaces
+target_include_directories(gripper_controller
+    PRIVATE
+        include
 )
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}
+target_compile_definitions(gripper_controller
+    PRIVATE
+        BOOST_ERROR_CODE_HEADER_ONLY
 )
 
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME})
+target_link_libraries(gripper_controller
+    PRIVATE
+        pthread
+)
 
-ament_package()
+target_compile_options(gripper_controller
+    PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
+)
