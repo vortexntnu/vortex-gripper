@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <string>
 
+namespace vortex::gripper {
+
 class Joystick {
 public:
     static constexpr std::size_t MAX_AXES = 16;
@@ -32,3 +34,5 @@ private:
     std::array<std::int16_t, MAX_AXES> axes_{};
     std::array<bool, MAX_BUTTONS> buttons_{};
 };
+
+} // namespace vortex::gripper

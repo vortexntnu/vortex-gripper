@@ -1,4 +1,4 @@
-#include "joystick.hpp"
+#include "vortex/gripper/joystick.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -7,6 +7,8 @@
 #include <fcntl.h>
 #include <linux/joystick.h>
 #include <unistd.h>
+
+namespace vortex::gripper {
 
 Joystick::Joystick(const std::string& device) {
     fd_ = open(device.c_str(), O_RDONLY | O_NONBLOCK);
@@ -107,3 +109,5 @@ double Joystick::axis(std::size_t index) const {
 bool Joystick::button(std::size_t index) const {
     return index < buttons_.size() && buttons_[index];
 }
+
+} // namespace vortex::gripper
