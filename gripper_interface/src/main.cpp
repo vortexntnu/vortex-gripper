@@ -1,3 +1,4 @@
+#include <memory>
 #include "gripper_interface/gripper_interface_driver.hpp"
 #include "joystick.hpp"
 
@@ -42,8 +43,7 @@ double apply_deadband(double value, double deadband) {
     }
 
     const double sign = value > 0.0 ? 1.0 : -1.0;
-    const double magnitude =
-        (std::abs(value) - deadband) / (1.0 - deadband);
+    const double magnitude = (std::abs(value) - deadband) / (1.0 - deadband);
 
     return sign * magnitude;
 }
@@ -52,18 +52,68 @@ std::uint16_t clamp_pwm(int value) {
     constexpr int min_pwm = 700;
     constexpr int max_pwm = 2300;
 
-    return static_cast<std::uint16_t>(
-        std::clamp(value, min_pwm, max_pwm));
+    return static_cast<std::uint16_t>(std::clamp(value, min_pwm, max_pwm));
 }
 
 }  // namespace
 
+struct ControlState {
+    double shoulder{0.0};
+    double wrist{0.0};
+
+    bool start{false};
+    bool stop{false};
+    bool y{false};
+};
+
+ControlState simulated_control_state(
+    std::chrono::steady_clock::duration elapsed) {
+    using namespace std::chrono;
+
+    const double t = duration<double>(elapsed).count();
+
+    ControlState state{};
+
+    /*
+     * 0-2 s: neutral
+     * 2-5 s: shoulder forward
+     * 5-8 s: wrist backward
+     * 8 s: one Start press
+     * 10 s: one Y press, initiating timed rotation
+     * 13 s: one Stop press
+     */
+    if (t >= 2.0 && t < 5.0) {
+        state.shoulder = 0.60;
+    }
+
+    if (t >= 5.0 && t < 8.0) {
+        state.wrist = -0.50;
+    }
+
+    if (t >= 8.0 && t < 8.1) {
+        state.start = true;
+    }
+
+    if (t >= 10.0 && t < 10.1) {
+        state.y = true;
+    }
+
+    if (t >= 13.0 && t < 13.1) {
+        state.stop = true;
+    }
+
+    return state;
+}
+
 int main(int argc, char** argv) {
-    const std::string joystick_device =
-        argc > 1 ? argv[1] : "/dev/input/js0";
+    const bool simulate = argc > 1 && std::string(argv[1]) == "--simulate";
 
     const std::string serial_port =
-        argc > 2 ? argv[2] : "/dev/ttyUSB0";
+        simulate ? (argc > 2 ? argv[2] : "/tmp/gripper_serial")
+                 : (argc > 2 ? argv[2] : "/dev/ttyUSB0");
+
+    const std::string joystick_device =
+        simulate ? "" : (argc > 1 ? argv[1] : "/dev/input/js0");
 
     constexpr unsigned int serial_baudrate = 115200;
 
@@ -91,26 +141,27 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    Joystick joystick(joystick_device);
+    std::unique_ptr<Joystick> joystick;
 
-    if (!joystick.is_open()) {
-        return 1;
+    if (!simulate) {
+        joystick = std::make_unique<Joystick>(joystick_device);
+
+        if (!joystick->is_open()) {
+            return 1;
+        }
+    } else {
+        std::cout << "Running with simulated joystick input\n";
     }
 
     boost::asio::io_context asio_io;
 
-    GripperInterfaceDriver driver(
-        asio_io,
-        serial_port,
-        serial_baudrate,
-        pwm_gain,
-        pwm_idle);
+    GripperInterfaceDriver driver(asio_io, serial_port, serial_baudrate,
+                                  pwm_gain, pwm_idle);
 
     const auto init_status = driver.init_serial();
 
     if (init_status != serial_status::OK) {
-        std::cerr << "Failed to initialize serial on "
-                  << serial_port << ": "
+        std::cerr << "Failed to initialize serial on " << serial_port << ": "
                   << serial_status_to_string(init_status) << '\n';
         return 1;
     }
@@ -126,14 +177,11 @@ int main(int argc, char** argv) {
 
             if (angles.size() >= 2) {
                 std::cout << "Encoders: wrist=" << angles[0]
-                          << " rad, grip=" << angles[1]
-                          << " rad\n";
+                          << " rad, grip=" << angles[1] << " rad\n";
             }
         });
 
-    std::thread asio_thread([&asio_io]() {
-        asio_io.run();
-    });
+    std::thread asio_thread([&asio_io]() { asio_io.run(); });
 
     bool start_button_was_pressed = false;
     bool stop_button_was_pressed = false;
@@ -147,35 +195,53 @@ int main(int argc, char** argv) {
     std::cout << "Serial: " << serial_port << '\n';
 
     auto next_tick = std::chrono::steady_clock::now();
+    const auto program_start = std::chrono::steady_clock::now();
 
     while (running) {
-        joystick.poll();
-
         const auto now = std::chrono::steady_clock::now();
 
-        const double shoulder_value = apply_deadband(
-            joystick.axis(shoulder_axis),
-            joystick_deadband);
+        double shoulder_value = 0.0;
+        double wrist_value = 0.0;
 
-        const double wrist_value = apply_deadband(
-            joystick.axis(wrist_axis),
-            joystick_deadband);
+        bool y_pressed = false;
+        bool start_pressed = false;
+        bool stop_pressed = false;
+
+        if (simulate) {
+            const auto elapsed = now - program_start;
+            const ControlState simulated = simulated_control_state(elapsed);
+
+            // The simulator returns normalized values already.
+            shoulder_value = simulated.shoulder;
+            wrist_value = simulated.wrist;
+
+            y_pressed = simulated.y;
+            start_pressed = simulated.start;
+            stop_pressed = simulated.stop;
+        } else {
+            joystick->poll();
+
+            shoulder_value = apply_deadband(joystick->axis(shoulder_axis),
+                                            joystick_deadband);
+
+            wrist_value =
+                apply_deadband(joystick->axis(wrist_axis), joystick_deadband);
+
+            y_pressed = joystick->button(y_button);
+            start_pressed = joystick->button(start_button);
+            stop_pressed = joystick->button(stop_button);
+        }
 
         std::vector<std::uint16_t> pwm_values = {
-            clamp_pwm(pwm_idle +
-                      static_cast<int>(pwm_gain * shoulder_value)),
+            clamp_pwm(pwm_idle + static_cast<int>(pwm_gain * shoulder_value)),
 
-            clamp_pwm(pwm_idle +
-                      static_cast<int>(pwm_gain * wrist_value)),
+            clamp_pwm(pwm_idle + static_cast<int>(pwm_gain * wrist_value)),
 
             neutral_pwm,
         };
 
         // Y button starts a one-second timed rotation.
-        const bool y_pressed = joystick.button(y_button);
-        const bool y_rising_edge =
-            y_pressed && !y_button_was_pressed;
-
+        const bool y_rising_edge = y_pressed && !y_button_was_pressed;
         y_button_was_pressed = y_pressed;
 
         if (y_rising_edge && !rotate_90_active) {
@@ -196,15 +262,11 @@ int main(int argc, char** argv) {
             }
         }
 
-        // Start / stop rising edges.
-        const bool start_pressed = joystick.button(start_button);
-        const bool stop_pressed = joystick.button(stop_button);
-
+        // Start / stop are edge-triggered: one serial packet per press.
         const bool start_rising_edge =
             start_pressed && !start_button_was_pressed;
 
-        const bool stop_rising_edge =
-            stop_pressed && !stop_button_was_pressed;
+        const bool stop_rising_edge = stop_pressed && !stop_button_was_pressed;
 
         start_button_was_pressed = start_pressed;
         stop_button_was_pressed = stop_pressed;
@@ -212,20 +274,19 @@ int main(int argc, char** argv) {
         if (start_rising_edge) {
             const auto status = driver.start_gripper();
 
-            std::cout << "Start gripper: "
-                      << serial_status_to_string(status) << '\n';
+            std::cout << "Start gripper: " << serial_status_to_string(status)
+                      << '\n';
         }
 
         if (stop_rising_edge) {
             const auto status = driver.stop_gripper();
 
-            std::cout << "Stop gripper: "
-                      << serial_status_to_string(status) << '\n';
+            std::cout << "Stop gripper: " << serial_status_to_string(status)
+                      << '\n';
         }
 
-        // Send regardless of whether a new event appeared.
-        // This is the direct replacement for the ROS joy stream and
-        // prevents a command watchdog from timing out while sticks are held.
+        // Always transmit at the control rate, even when joystick state is
+        // unchanged.
         const auto pwm_status = driver.send_pwm(pwm_values);
 
         if (pwm_status != serial_status::OK) {
@@ -233,7 +294,24 @@ int main(int argc, char** argv) {
                       << serial_status_to_string(pwm_status) << '\n';
         }
 
+        // Optional readable output while testing.
+        static auto last_log = now;
+
+        if (now - last_log >= std::chrono::milliseconds(500)) {
+            std::cout << "PWM: " << pwm_values[0] << " " << pwm_values[1] << " "
+                      << pwm_values[2] << " | rotate=" << rotate_90_active
+                      << '\n';
+
+            last_log = now;
+        }
+
         next_tick += control_period;
+
+        // Avoid a runaway loop if debugging or serial writes take too long.
+        if (next_tick < now) {
+            next_tick = now + control_period;
+        }
+
         std::this_thread::sleep_until(next_tick);
     }
 
